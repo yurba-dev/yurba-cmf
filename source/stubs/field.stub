@@ -1,0 +1,24 @@
+<?php
+
+namespace {{ namespace }};
+
+use Yurba\Cmf\Fields\Field;
+
+class {{ class }} extends Field
+{
+    public function component(): string
+    {
+        return '{{ view }}';
+    }
+
+    // index cell renderer: text | boolean | badge | image
+    // public function indexComponent(): string
+    // {
+    //     return 'text';
+    // }
+
+    // public function fill(\Illuminate\Http\Request $request, \Illuminate\Database\Eloquent\Model $model): void
+    // {
+    //     $model->{$this->column()} = $request->input($this->name);
+    // }
+}

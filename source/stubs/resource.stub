@@ -1,0 +1,27 @@
+<?php
+
+namespace {{ namespace }};
+
+{{ imports }}
+
+class {{ class }} extends Resource
+{
+    public static string $model = {{ model }}::class;
+{{ specials }}
+    public function icon(): ?string
+    {
+        return '{{ icon }}';
+    }
+
+    public function bulkActions(): array
+    {
+        return ['delete' => 'Delete selected'];
+    }
+
+    public function fields(): array
+    {
+        return [
+{{ fields }}
+        ];
+    }
+}

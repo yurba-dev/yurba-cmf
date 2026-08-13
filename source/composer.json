@@ -1,0 +1,38 @@
+{
+    "name": "yurba/cmf",
+    "description": "YurbaCMF — a lightweight, dependency-free auto-CRUD content management framework for Laravel. Plain Blade and vanilla CSS, no front-end build step.",
+    "type": "library",
+    "keywords": ["laravel", "cmf", "cms", "admin", "crud", "dashboard"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yurba",
+            "homepage": "https://dev.yurba.one"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^11.0|^12.0",
+        "illuminate/database": "^11.0|^12.0",
+        "illuminate/filesystem": "^11.0|^12.0",
+        "illuminate/http": "^11.0|^12.0",
+        "illuminate/routing": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/validation": "^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Yurba\\Cmf\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Yurba\\Cmf\\ServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

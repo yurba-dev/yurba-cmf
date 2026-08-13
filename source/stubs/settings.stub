@@ -1,0 +1,21 @@
+<?php
+
+namespace {{ namespace }};
+
+use Yurba\Cmf\Fields\Text;
+use Yurba\Cmf\Settings\SettingsPage;
+
+class {{ class }} extends SettingsPage
+{
+    public function icon(): ?string
+    {
+        return '<span class="material-symbols-rounded">tune</span>';
+    }
+
+    public function fields(): array
+    {
+        return [
+            Text::make('example')->help('Replace this with your settings fields.'),
+        ];
+    }
+}

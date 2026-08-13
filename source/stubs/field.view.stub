@@ -1,0 +1,7 @@
+{{-- Form control for the {{ class }} field. $field and $record are in scope. --}}
+<input type="text"
+       id="{{ $field->name }}"
+       name="{{ $field->name }}"
+       value="{{ $field->formValue($record) }}"
+       @if($field->placeholder) placeholder="{{ $field->placeholder }}" @endif
+       class="y-input">
