@@ -6,7 +6,7 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Yurba",
+            "name": "Yurba Studio",
             "homepage": "https://dev.yurba.one"
         }
     ],
@@ -22,7 +22,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Yurba\\Cmf\\": "src/"
+            "Yurba\\Cmf\\": "source/src/"
         }
     },
     "extra": {
