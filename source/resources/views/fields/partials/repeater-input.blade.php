@@ -26,6 +26,18 @@
               data-min-height="160" rows="6" name="{{ $name }}">{{ $val }}</textarea>
 @elseif(is_array($conf) && !empty($conf['textarea']))
     <textarea class="y-input y-textarea" rows="4" name="{{ $name }}">{{ $val }}</textarea>
+@elseif(is_array($conf) && !empty($conf['boolean']))
+    <label class="y-check">
+        <input type="hidden" name="{{ $name }}" value="0">
+        <input type="checkbox" name="{{ $name }}" value="1" {{ filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'checked' : '' }}>
+        <span>{{ $conf['on'] ?? 'Yes' }}</span>
+    </label>
+@elseif(is_array($conf) && !empty($conf['options']))
+    <select class="y-input" name="{{ $name }}">
+        @foreach($conf['options'] as $optValue => $optLabel)
+            <option value="{{ $optValue }}" @selected((string) $val === (string) $optValue)>{{ $optLabel }}</option>
+        @endforeach
+    </select>
 @else
     <input type="text" class="y-input" name="{{ $name }}" value="{{ $val }}">
 @endif

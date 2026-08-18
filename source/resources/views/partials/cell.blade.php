@@ -21,7 +21,12 @@
 @elseif($type === 'image')
     @php($src = $field->value($record))
     @if($src)
-        <img src="{{ $src }}" alt="" class="y-thumb">
+        {{-- data-full is the original: the panel viewer (main.js bindImg) reads
+             it for the lightbox, otherwise it would open the thumbnail src. --}}
+        <a href="{{ $src }}" target="_blank" rel="noopener">
+            <img src="{{ \Yurba\Cmf\Media\Media::thumbFor($src) }}" data-full="{{ $src }}" alt="" class="y-thumb"
+                 onerror="this.onerror=null;this.src='{{ $src }}'">
+        </a>
         @if(config('yurba.ui.viewer', true))
             @include('yurba::partials.ui-viewer')
         @endif

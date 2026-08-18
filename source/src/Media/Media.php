@@ -41,6 +41,21 @@ class Media extends Model
             : $this->url;
     }
 
+    // thumbnail url for a stored media url, by the same {dir}-thumbs convention
+    // the media controller writes; unchanged when thumbnails are off or the url
+    // is not a library file (e.g. a plain Image-field upload under /uploads)
+    public static function thumbFor(string $url): string
+    {
+        $on = config('yurba.media.optimize', true) && config('yurba.media.thumbnails', true);
+        $dir = trim((string) config('yurba.media.dir', 'media'), '/');
+
+        if (! $on || $dir === '' || ! str_contains($url, '/'.$dir.'/')) {
+            return $url;
+        }
+
+        return str_replace('/'.$dir.'/', '/'.$dir.'-thumbs/', $url);
+    }
+
     // return a site-root-relative URL (/storage/…) so stored values are domain-
     // independent; opt out for external CDN/S3 disks with yurba.media.relative_urls=false
     protected function relativize(string $url): string
