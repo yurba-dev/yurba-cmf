@@ -1,8 +1,8 @@
 @extends('yurba::layout')
 
 @php $editing = $record->exists; @endphp
-@section('title', ($editing ? 'Edit ' : 'New ').$res->label())
-@section('heading', $editing ? 'Edit '.$res->label().': '.$res->title($record) : 'New '.$res->label())
+@section('title', $editing ? __('Edit :name', ['name' => $res->label()]) : __('New :name', ['name' => $res->label()]))
+@section('heading', $editing ? __('Edit :name', ['name' => $res->label()]).': '.$res->title($record) : __('New :name', ['name' => $res->label()]))
 
 @section('content')
     @php
@@ -25,20 +25,20 @@
             <div class="y-revisions {{ ($loadedRevision ?? null) ? 'is-loaded' : '' }}">
                 <form method="GET" action="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-revisions__pick">
                     <label for="y-revision-select" class="y-revisions__label">
-                        <span class="material-symbols-rounded" aria-hidden="true">history</span> Revision
+                        <span class="material-symbols-rounded" aria-hidden="true">history</span> {{ __('Revision') }}
                     </label>
                     <select id="y-revision-select" name="revision" class="y-input" onchange="this.form.submit()" @if($uiSelect) data-yurba-select @endif>
-                        <option value="">Current (latest)</option>
+                        <option value="">{{ __('Current (latest)') }}</option>
                         @foreach($revisions as $rev)
                             <option value="{{ $rev->id }}" @selected(($loadedRevision ?? null) && $loadedRevision->id === $rev->id)>{{ $rev->created_at?->format('Y-m-d H:i') }} · {{ $rev->user_name ?? '—' }}</option>
                         @endforeach
                     </select>
-                    <noscript><button type="submit" class="y-btn y-btn__ghost y-btn__xs">Load</button></noscript>
+                    <noscript><button type="submit" class="y-btn y-btn__ghost y-btn__xs">{{ __('Load') }}</button></noscript>
                 </form>
                 @if($loadedRevision ?? null)
                     <p class="y-revisions__note">
-                        Editing a revision from <strong>{{ $loadedRevision->created_at }}</strong>. Save to make it the current version.
-                        <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs">Discard</a>
+                        {{ __('Editing a revision from') }} <strong>{{ $loadedRevision->created_at }}</strong>. {{ __('Save to make it the current version.') }}
+                        <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs">{{ __('Discard') }}</a>
                     </p>
                 @endif
                 @if($uiSelect)@include('yurba::partials.ui-select')@endif
@@ -56,7 +56,7 @@
             <div class="y-tabs" role="tablist">
                 @foreach($tabNames as $i => $name)
                     <button type="button" class="y-tabs__tab {{ $i === 0 ? 'is-active' : '' }}" data-tab-target="y-tab-{{ $i }}">
-                        {{ $name !== '' ? $name : 'General' }}
+                        {{ $name !== '' ? $name : __('General') }}
                     </button>
                 @endforeach
             </div>
@@ -71,15 +71,15 @@
 
         <div class="y-form__actions">
             @if($editing)
-                <button type="submit" name="after" value="edit" class="y-btn y-btn__primary">Save</button>
-                <button type="submit" name="after" value="index" class="y-btn y-btn__ghost">Save and exit</button>
+                <button type="submit" name="after" value="edit" class="y-btn y-btn__primary">{{ __('Save') }}</button>
+                <button type="submit" name="after" value="index" class="y-btn y-btn__ghost">{{ __('Save and exit') }}</button>
             @else
-                <button type="submit" class="y-btn y-btn__primary">Create</button>
+                <button type="submit" class="y-btn y-btn__primary">{{ __('Create') }}</button>
             @endif
-            <a href="{{ route('yurba.resource.index', $res->uriKey()) }}" class="y-btn y-btn__ghost">Cancel</a>
+            <a href="{{ route('yurba.resource.index', $res->uriKey()) }}" class="y-btn y-btn__ghost">{{ __('Cancel') }}</a>
             @if($editing && ($preview = $res->previewUrl($record)))
                 <a href="{{ $preview }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost">
-                    <span class="material-symbols-rounded">visibility</span> Preview
+                    <span class="material-symbols-rounded">visibility</span> {{ __('Preview') }}
                 </a>
             @endif
         </div>

@@ -20,6 +20,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Language (panel interface only)
+    |--------------------------------------------------------------------------
+    | 'locale'  - default UI language. English ('en') needs no language pack.
+    | 'locales' - languages the admin may switch between (code => label), chosen
+    |             on the built-in Panel settings page. Interface strings only.
+    */
+    'locale' => env('YURBA_LOCALE', 'en'),
+
+    'locales' => [
+        'en' => 'English',
+        'ru' => 'Русский',
+        'uk' => 'Українська',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Routing
     |--------------------------------------------------------------------------
     | URL prefix and middleware for the admin panel. The 'yurba.auth' middleware
@@ -162,12 +178,22 @@ return [
         'per_page' => 28,
 
         // Re-encode uploads (GD, no extra dependency): downscale to max_width and
-        // strip metadata. thumbnails generates a small derivative for grids/picker.
+        // strip metadata. Thumbnails are generated on demand (Media::thumb / a
+        // field's ->thumb()) and cached under {dir}-thumbs/{width}/.
         'optimize' => env('YURBA_MEDIA_OPTIMIZE', true),
         'max_width' => 2560,
         'quality' => 82,
-        'thumbnails' => true,
-        'thumb_width' => 480,
+        'thumb_presets' => [
+            'small' => 320,
+            'medium' => 640,
+            'large' => 1280,
+        ],
+        'thumb_default' => 'small',
+
+        // record every optimization outcome (Settings -> Optimize images -> log);
+        // log_keep bounds the table (0 or less = unlimited)
+        'log' => env('YURBA_MEDIA_LOG', true),
+        'log_keep' => env('YURBA_MEDIA_LOG_KEEP', 1000),
     ],
 
     /*

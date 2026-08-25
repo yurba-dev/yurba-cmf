@@ -70,7 +70,7 @@ class ImportExportController extends Controller
 
         [$header, $rows] = Csv::read($request->file('file')->getRealPath());
         if (empty($header)) {
-            return back()->withErrors(['file' => 'The file is empty or unreadable.']);
+            return back()->withErrors(['file' => __('The file is empty or unreadable.')]);
         }
 
         $model = $res->newModel();
@@ -128,8 +128,8 @@ class ImportExportController extends Controller
             }
         }
 
-        $summary = "Import complete — {$created} created, {$updated} updated"
-            .($failed ? ", {$failed} failed" : '').'.';
+        $summary = __('Import complete — :created created, :updated updated', ['created' => $created, 'updated' => $updated])
+            .($failed ? __(', :failed failed', ['failed' => $failed]) : '').'.';
 
         $redirect = redirect()
             ->route('yurba.resource.index', $res->uriKey())

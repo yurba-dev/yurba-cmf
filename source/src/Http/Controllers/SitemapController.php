@@ -7,17 +7,69 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-// public /sitemap.xml, config-driven (yurba.sitemap): static urls + model
-// sources. records flagged noindex in yurba_seo are excluded.
+// public sitemap(s), config-driven (yurba.sitemap): a single urlset, or — when
+// yurba.sitemap.sitemaps is set — a <sitemapindex> over named /sitemap-{name}.xml.
+// records flagged noindex in yurba_seo are excluded.
 class SitemapController extends Controller
 {
+    // GET /sitemap.xml — a urlset (single mode) or a sitemapindex (multiple mode)
     public function index(): Response
     {
         abort_unless((bool) config('yurba.sitemap.enabled', true), 404);
 
+        $named = $this->named();
+
+        if ($named) {
+            return $this->xml($this->renderIndex(array_keys($named)));
+        }
+
+        $urls = $this->buildUrls(
+            (array) config('yurba.sitemap.static', []),
+            (array) config('yurba.sitemap.sources', [])
+        );
+
+        return $this->xml($this->renderUrlset($urls));
+    }
+
+    // GET /sitemap-{name}.xml — a single named sitemap's urlset
+    public function show(string $name): Response
+    {
+        abort_unless((bool) config('yurba.sitemap.enabled', true), 404);
+
+        $named = $this->named();
+        abort_unless(isset($named[$name]), 404);
+
+        $urls = $this->buildUrls(
+            (array) ($named[$name]['static'] ?? []),
+            (array) ($named[$name]['sources'] ?? [])
+        );
+
+        return $this->xml($this->renderUrlset($urls));
+    }
+
+    // normalized ['name' => ['static'=>[], 'sources'=>[]], …]; empty = single mode
+    protected function named(): array
+    {
+        $out = [];
+        foreach ((array) config('yurba.sitemap.sitemaps', []) as $name => $def) {
+            $name = (string) $name;
+            if ($name === '' || ! is_array($def)) {
+                continue;
+            }
+            $out[$name] = [
+                'static' => (array) ($def['static'] ?? []),
+                'sources' => (array) ($def['sources'] ?? []),
+            ];
+        }
+
+        return $out;
+    }
+
+    protected function buildUrls(array $static, array $sources): array
+    {
         $urls = [];
 
-        foreach ((array) config('yurba.sitemap.static', []) as $entry) {
+        foreach ($static as $entry) {
             $entry = is_array($entry) ? $entry : ['loc' => $entry];
             $urls[] = [
                 'loc' => $this->absolute($entry['loc']),
@@ -27,13 +79,11 @@ class SitemapController extends Controller
             ];
         }
 
-        foreach ((array) config('yurba.sitemap.sources', []) as $source) {
-            $urls = array_merge($urls, $this->fromSource($source));
+        foreach ($sources as $source) {
+            $urls = array_merge($urls, $this->fromSource((array) $source));
         }
 
-        $xml = $this->render($urls);
-
-        return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+        return $urls;
     }
 
     protected function fromSource(array $source): array
@@ -85,7 +135,7 @@ class SitemapController extends Controller
         return $urls;
     }
 
-    protected function render(array $urls): string
+    protected function renderUrlset(array $urls): string
     {
         $lines = ['<?xml version="1.0" encoding="UTF-8"?>'];
         $lines[] = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
@@ -111,6 +161,28 @@ class SitemapController extends Controller
         $lines[] = '</urlset>';
 
         return implode("\n", $lines)."\n";
+    }
+
+    protected function renderIndex(array $names): string
+    {
+        $lines = ['<?xml version="1.0" encoding="UTF-8"?>'];
+        $lines[] = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+        foreach ($names as $name) {
+            $loc = route('yurba.sitemap.named', ['name' => $name]);
+            $lines[] = '  <sitemap>';
+            $lines[] = '    <loc>'.htmlspecialchars($loc, ENT_XML1).'</loc>';
+            $lines[] = '  </sitemap>';
+        }
+
+        $lines[] = '</sitemapindex>';
+
+        return implode("\n", $lines)."\n";
+    }
+
+    protected function xml(string $body): Response
+    {
+        return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
     }
 
     protected function absolute(string $loc): string

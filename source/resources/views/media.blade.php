@@ -1,13 +1,13 @@
 @extends('yurba::layout')
 
-@section('title', 'Media')
-@section('heading', 'Media')
+@section('title', __('Media'))
+@section('heading', __('Media'))
 @section('titleCount', number_format($media->total()))
 
 @section('content')
     <div class="y-toolbar">
         <form method="GET" action="{{ route('yurba.media') }}" class="y-toolbar__search">
-            <input type="search" name="q" value="{{ $search }}" class="y-filters__search" placeholder="Search media…">
+            <input type="search" name="q" value="{{ $search }}" class="y-filters__search" placeholder="{{ __('Search media…') }}">
         </form>
         <span class="y-toolbar__actions">
             <form method="POST" action="{{ route('yurba.media.store') }}" enctype="multipart/form-data" id="y-media-upload" class="y-inline">
@@ -15,15 +15,15 @@
                 <input type="file" name="files[]" id="y-media-files" multiple class="y-media-upload__input"
                        accept="image/*,application/pdf">
                 <label for="y-media-files" class="y-btn y-btn__primary">
-                    <span class="material-symbols-rounded">upload</span> Upload
+                    <span class="material-symbols-rounded">upload</span> {{ __('Upload') }}
                 </label>
-                <noscript><button type="submit" class="y-btn y-btn__ghost">Upload selected</button></noscript>
+                <noscript><button type="submit" class="y-btn y-btn__ghost">{{ __('Upload selected') }}</button></noscript>
             </form>
         </span>
     </div>
 
     @if($media->total() === 0)
-        <p class="y-muted">No media yet. Upload images or files to reuse across the panel — copy a URL and paste it into any image or link field.</p>
+        <p class="y-muted">{{ __('No media yet. Upload images or files to reuse across the panel — copy a URL and paste it into any image or link field.') }}</p>
     @else
         <div class="y-media-grid">
             @foreach($media as $item)
@@ -42,15 +42,15 @@
                         </div>
                     </div>
                     <div class="y-media-card__actions">
-                        <button type="button" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" data-copy="{{ $item->url }}" title="Copy URL" aria-label="Copy URL">
+                        <button type="button" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" data-copy="{{ $item->url }}" title="{{ __('Copy URL') }}" aria-label="{{ __('Copy URL') }}">
                             <span class="material-symbols-rounded">link</span>
                         </button>
-                        <a href="{{ $item->url }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" title="Open" aria-label="Open">
+                        <a href="{{ $item->url }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" title="{{ __('Open') }}" aria-label="{{ __('Open') }}">
                             <span class="material-symbols-rounded">open_in_new</span>
                         </a>
-                        <form method="POST" action="{{ route('yurba.media.destroy', $item->id) }}" onsubmit="return confirm('Delete this file?');" class="y-inline">
+                        <form method="POST" action="{{ route('yurba.media.destroy', $item->id) }}" onsubmit="return confirm('{{ __('Delete this file?') }}');" class="y-inline">
                             @csrf @method('DELETE')
-                            <button type="submit" class="y-btn y-btn__danger y-btn__xs y-btn__icon" title="Delete" aria-label="Delete">
+                            <button type="submit" class="y-btn y-btn__danger y-btn__xs y-btn__icon" title="{{ __('Delete') }}" aria-label="{{ __('Delete') }}">
                                 <span class="material-symbols-rounded">delete</span>
                             </button>
                         </form>

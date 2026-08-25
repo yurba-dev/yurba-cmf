@@ -24,7 +24,7 @@
         {{-- data-full is the original: the panel viewer (main.js bindImg) reads
              it for the lightbox, otherwise it would open the thumbnail src. --}}
         <a href="{{ $src }}" target="_blank" rel="noopener">
-            <img src="{{ \Yurba\Cmf\Media\Media::thumbFor($src) }}" data-full="{{ $src }}" alt="" class="y-thumb"
+            <img src="{{ $field->thumb !== null ? \Yurba\Cmf\Media\Media::thumb($src, $field->thumb) : $src }}" data-full="{{ $src }}" alt="" class="y-thumb"
                  onerror="this.onerror=null;this.src='{{ $src }}'">
         </a>
         @if(config('yurba.ui.viewer', true))

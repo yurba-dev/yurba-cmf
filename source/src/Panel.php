@@ -13,6 +13,9 @@ use Yurba\Cmf\Settings\Store;
 // bound as a singleton ("yurba.cmf").
 class Panel
 {
+    // YurbaCMF release, shown in the panel footer
+    public const VERSION = '1.0.2';
+
     protected ?Closure $gate = null;
 
     public function brand(): string
@@ -50,6 +53,22 @@ class Panel
     public function mediaOptimize(): bool
     {
         return (bool) Store::get('panel_media_optimize', config('yurba.media.optimize', true));
+    }
+
+    // admin-selected UI language; falls back to the default when the stored value is unknown.
+    public function locale(): string
+    {
+        $default = (string) config('yurba.locale', 'en');
+        $available = array_keys((array) config('yurba.locales', ['en' => 'English']));
+        $locale = (string) Store::get('panel_locale', $default);
+
+        return in_array($locale, $available, true) ? $locale : $default;
+    }
+
+    /** @return array<string, string> available UI locales: code => label */
+    public function locales(): array
+    {
+        return (array) config('yurba.locales', ['en' => 'English']);
     }
 
     /** @return string[] */
@@ -146,7 +165,7 @@ class Panel
 
         // each entry is a class-string, a [class, ...ctorArgs] tuple (keeps the
         // config serializable for config:cache), or a ready Page instance
-        return collect(config('yurba.pages', []))
+        $pages = collect(config('yurba.pages', []))
             ->map(function ($page) {
                 if ($page instanceof Pages\Page) {
                     return $page;
@@ -159,7 +178,15 @@ class Panel
 
                 return is_string($page) && class_exists($page) ? app($page) : null;
             })
-            ->filter(fn ($p) => $p instanceof Pages\Page)
+            ->filter(fn ($p) => $p instanceof Pages\Page);
+
+        // built-in media screens (hidden from nav, linked from settings)
+        if (config('yurba.media.log', true)) {
+            $pages->push(app(Pages\MediaOptimizationLogPage::class));
+        }
+        $pages->push(app(Pages\MediaUsagePage::class));
+
+        return $pages
             ->filter(fn (Pages\Page $p) => $p->canView($user))
             ->values();
     }

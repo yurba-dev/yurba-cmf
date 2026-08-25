@@ -34,7 +34,7 @@ class AuthController extends Controller
         if (! Auth::guard($guard)->attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey($request), $this->throttleDecay());
             throw ValidationException::withMessages([
-                'email' => 'These credentials do not match our records.',
+                'email' => __('These credentials do not match our records.'),
             ]);
         }
 
@@ -42,7 +42,7 @@ class AuthController extends Controller
             Auth::guard($guard)->logout();
             RateLimiter::hit($this->throttleKey($request), $this->throttleDecay());
             throw ValidationException::withMessages([
-                'email' => 'This account is not allowed to access the panel.',
+                'email' => __('This account is not allowed to access the panel.'),
             ]);
         }
 
@@ -65,7 +65,7 @@ class AuthController extends Controller
         $seconds = RateLimiter::availableIn($this->throttleKey($request));
 
         throw ValidationException::withMessages([
-            'email' => 'Too many login attempts. Try again in '.ceil($seconds / 60).' minute(s).',
+            'email' => __('Too many login attempts. Try again in :minutes minute(s).', ['minutes' => ceil($seconds / 60)]),
         ]);
     }
 

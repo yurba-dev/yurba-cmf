@@ -41,7 +41,7 @@ class SettingsController extends Controller
 
         return redirect()
             ->route('yurba.settings.show', $settings->uriKey())
-            ->with('yurba_status', $settings->label().' settings saved.');
+            ->with('yurba_status', __(':name settings saved.', ['name' => $settings->label()]));
     }
 
     // non-persisted model preloaded with current values so the fields render

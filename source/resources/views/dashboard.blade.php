@@ -12,8 +12,8 @@
             </a>
         @empty
             <div class="y-empty">
-                <p>No resources registered yet.</p>
-                <p class="y-muted">Add resource classes to <code>config/yurba.php</code>.</p>
+                <p>{{ __('No resources registered yet.') }}</p>
+                <p class="y-muted">{{ __('Add resource classes to') }} <code>config/yurba.php</code>.</p>
             </div>
         @endforelse
     </div>

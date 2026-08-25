@@ -32,6 +32,6 @@
     @endif
 
     <div class="y-form__actions">
-        <button type="submit" class="y-btn y-btn__primary">Save changes</button>
+        <button type="submit" class="y-btn y-btn__primary">{{ __('Save changes') }}</button>
     </div>
 </form>

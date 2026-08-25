@@ -20,6 +20,12 @@ abstract class Field
     public mixed $default = null;
     public ?string $help = null;
 
+    // optional links shown as buttons under the help text: [['url' => .., 'label' => ..], ...]
+    public array $helpLinks = [];
+
+    // preferred thumbnail size for image fields: preset name or pixel width; null = original.
+    public int|string|null $thumb = null;
+
     // form grouping: a tab and/or a titled section
     public ?string $tab = null;
     public ?string $section = null;
@@ -105,6 +111,22 @@ abstract class Field
     public function help(string $h): static
     {
         $this->help = $h;
+
+        return $this;
+    }
+
+    // add a button-style link under the help text (call more than once for several)
+    public function helpLink(string $url, string $label): static
+    {
+        $this->helpLinks[] = ['url' => $url, 'label' => $label];
+
+        return $this;
+    }
+
+    // request a thumbnail size for this image field (preset name or pixel width).
+    public function thumb(int|string $size): static
+    {
+        $this->thumb = $size;
 
         return $this;
     }

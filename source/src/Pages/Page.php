@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 // a custom panel screen: appears in the sidebar and renders inside the YurbaCMF
 // shell. register subclasses in config('yurba.pages'). render() handles GET and
-// handle() handles POST — each may return a view/string (wrapped in the panel
+// handle() handles POST - each may return a view/string (wrapped in the panel
 // chrome) or a full Response/redirect (used as-is).
 abstract class Page
 {

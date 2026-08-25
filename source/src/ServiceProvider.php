@@ -25,6 +25,8 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'yurba');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        // string-keyed JSON translations (lang/{locale}.json); English needs no file.
+        $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
         $router->aliasMiddleware('yurba.auth', Authorize::class);
 
         View::composer('yurba::*', function ($view) {
@@ -79,5 +81,9 @@ class ServiceProvider extends BaseServiceProvider
         $this->publishes([
             __DIR__.'/../resources/dist' => public_path('vendor/yurba'),
         ], 'yurba-assets');
+
+        $this->publishes([
+            __DIR__.'/../lang' => $this->app->langPath(),
+        ], 'yurba-lang');
     }
 }

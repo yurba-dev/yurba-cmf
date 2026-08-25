@@ -41,7 +41,7 @@ abstract class ContentPage extends Page
 
         return redirect()
             ->route('yurba.page.show', ['page' => $this->uriKey()])
-            ->with('yurba_status', $this->label().' saved.');
+            ->with('yurba_status', __(':name saved.', ['name' => $this->label()]));
     }
 
     // throwaway model preloaded with the page's current values, so the field

@@ -19,8 +19,11 @@ class Authorize
         }
 
         if (! Yurba::authorize($user)) {
-            abort(403, 'You do not have access to this panel.');
+            abort(403, __('You do not have access to this panel.'));
         }
+
+        // apply the selected UI language for the request
+        app()->setLocale(Yurba::locale());
 
         return $next($request);
     }

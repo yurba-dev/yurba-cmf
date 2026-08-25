@@ -1,7 +1,7 @@
 @extends('yurba::layout')
 
-@section('title', $page->label().' settings')
-@section('heading', $page->label().' settings')
+@section('title', __(':name settings', ['name' => $page->label()]))
+@section('heading', __(':name settings', ['name' => $page->label()]))
 
 @php
     // Group fields by ->tab(), same as the resource form.
@@ -24,7 +24,7 @@
             <div class="y-tabs" role="tablist">
                 @foreach($tabNames as $i => $name)
                     <button type="button" class="y-tabs__tab {{ $i === 0 ? 'is-active' : '' }}" data-tab-target="y-settings-tab-{{ $i }}">
-                        {{ $name !== '' ? $name : 'General' }}
+                        {{ $name !== '' ? $name : __('General') }}
                     </button>
                 @endforeach
             </div>
@@ -38,7 +38,7 @@
         @endif
 
         <div class="y-form__actions">
-            <button type="submit" class="y-btn y-btn__primary">Save changes</button>
+            <button type="submit" class="y-btn y-btn__primary">{{ __('Save changes') }}</button>
         </div>
     </form>
 @endsection

@@ -6,14 +6,67 @@ namespace Yurba\Cmf\Media;
 // metadata. non-images / unsupported types return null (store as-is).
 class ImageOptimizer
 {
-    // skip anything larger to avoid decoding it into memory (oom)
-    public const MAX_PIXELS = 40_000_000;
+    // absolute ceiling; the effective limit scales with memory_limit (see maxPixels()).
+    public const MAX_PIXELS = 200_000_000;
 
     protected const RASTER = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP];
 
     public static function available(): bool
     {
         return function_exists('imagecreatefromstring') && function_exists('imagecreatetruecolor');
+    }
+
+    // GD decodes the whole bitmap (~4 B/px) before resizing, so scale the limit to free memory.
+    public static function maxPixels(): int
+    {
+        $limit = self::memoryLimitBytes();
+        if ($limit <= 0) {
+            return self::MAX_PIXELS; // unlimited memory_limit: use the hard ceiling
+        }
+
+        $free = $limit - memory_get_usage(true);
+        $budgetPixels = (int) ($free * 0.5 / 4);
+
+        return max(4_000_000, min(self::MAX_PIXELS, $budgetPixels));
+    }
+
+    // parse ini memory_limit into bytes; -1 = unlimited
+    protected static function memoryLimitBytes(): int
+    {
+        $v = trim((string) ini_get('memory_limit'));
+        if ($v === '' || $v === '-1') {
+            return -1;
+        }
+
+        $num = (int) $v;
+
+        return match (strtolower((string) substr($v, -1))) {
+            'g' => $num * 1024 * 1024 * 1024,
+            'm' => $num * 1024 * 1024,
+            'k' => $num * 1024,
+            default => (int) $v,
+        };
+    }
+
+    // describe an image for logging/diagnostics without modifying it
+    /** @return array{raster: bool, width: ?int, height: ?int, pixels: int, max_pixels: int, over_limit: bool} */
+    public static function inspect(string $data): array
+    {
+        $i = @getimagesizefromstring($data);
+        $raster = $i && in_array($i[2], self::RASTER, true);
+        $w = $raster ? (int) $i[0] : null;
+        $h = $raster ? (int) $i[1] : null;
+        $px = ($w && $h) ? $w * $h : 0;
+        $max = self::maxPixels();
+
+        return [
+            'raster' => (bool) $raster,
+            'width' => $w,
+            'height' => $h,
+            'pixels' => $px,
+            'max_pixels' => $max,
+            'over_limit' => $raster && $px > $max,
+        ];
     }
 
     /** @return array{0: string, 1: int, 2: int}|null [bytes, width, height] */
@@ -76,7 +129,7 @@ class ImageOptimizer
             return null;
         }
         $i = @getimagesizefromstring($data);
-        if (! $i || ! in_array($i[2], self::RASTER, true) || $i[0] * $i[1] > self::MAX_PIXELS) {
+        if (! $i || ! in_array($i[2], self::RASTER, true) || $i[0] * $i[1] > self::maxPixels()) {
             return null;
         }
 

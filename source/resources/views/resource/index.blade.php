@@ -25,13 +25,13 @@
             {{-- Search: its own form; preserves current filters/sort as hidden inputs. --}}
             <form method="GET" action="{{ $indexUrl }}" class="y-toolbar__search">
                 <input type="search" name="q" value="{{ $search }}" class="y-filters__search"
-                       placeholder="Search {{ \Illuminate\Support\Str::lower($res->pluralLabel()) }}…">
+                       placeholder="{{ __('Search :items…', ['items' => \Illuminate\Support\Str::lower($res->pluralLabel())]) }}">
                 @include('yurba::partials.query-hidden', ['data' => request()->except(['q', 'page'])])
             </form>
 
             @if($hasFilterUi)
                 <button type="button" class="y-btn y-btn__ghost" data-filter-toggle aria-expanded="false">
-                    <span class="material-symbols-rounded">tune</span> Filters
+                    <span class="material-symbols-rounded">tune</span> {{ __('Filters') }}
                     @if($activeCount)<span class="y-filterbadge">{{ $activeCount }}</span>@endif
                 </button>
             @endif
@@ -39,13 +39,13 @@
             <span class="y-toolbar__actions">
                 @if($res->canExport())
                     <a href="{{ route('yurba.resource.export', array_merge(['resource' => $res->uriKey()], request()->query())) }}"
-                       class="y-btn y-btn__ghost">Export CSV</a>
+                       class="y-btn y-btn__ghost">{{ __('Export CSV') }}</a>
                 @endif
                 @if($res->canImport())
-                    <a href="{{ route('yurba.resource.import', $res->uriKey()) }}" class="y-btn y-btn__ghost">Import CSV</a>
+                    <a href="{{ route('yurba.resource.import', $res->uriKey()) }}" class="y-btn y-btn__ghost">{{ __('Import CSV') }}</a>
                 @endif
                 @if($res->canCreate($yurbaUser))
-                    <a href="{{ route('yurba.resource.create', $res->uriKey()) }}" class="y-btn y-btn__primary">New {{ $res->label() }}</a>
+                    <a href="{{ route('yurba.resource.create', $res->uriKey()) }}" class="y-btn y-btn__primary">{{ __('New') }} {{ $res->label() }}</a>
                 @endif
             </span>
         </div>
@@ -63,18 +63,18 @@
                     @endforeach
                     @if($res->usesSoftDeletes())
                         <label class="y-filter">
-                            <span class="y-filter__label">Show</span>
+                            <span class="y-filter__label">{{ __('Show') }}</span>
                             <select name="trashed" class="y-input y-filter__control" @if($ui) data-yurba-select @endif>
-                                <option value="">Active</option>
-                                <option value="only" @selected($trashedMode === 'only')>Trashed</option>
-                                <option value="with" @selected($trashedMode === 'with')>All</option>
+                                <option value="">{{ __('Active') }}</option>
+                                <option value="only" @selected($trashedMode === 'only')>{{ __('Trashed') }}</option>
+                                <option value="with" @selected($trashedMode === 'with')>{{ __('All') }}</option>
                             </select>
                         </label>
                     @endif
                 </div>
                 <div class="y-filterpanel__actions">
-                    <button type="submit" class="y-btn y-btn__primary y-btn__xs">Apply</button>
-                    @if($hasActive)<a href="{{ $indexUrl }}" class="y-btn y-btn__ghost y-btn__xs">Reset</a>@endif
+                    <button type="submit" class="y-btn y-btn__primary y-btn__xs">{{ __('Apply') }}</button>
+                    @if($hasActive)<a href="{{ $indexUrl }}" class="y-btn y-btn__ghost y-btn__xs">{{ __('Reset') }}</a>@endif
                 </div>
 
                 @if($ui)@include('yurba::partials.ui-select')@endif
@@ -103,7 +103,7 @@
                 <tr>
                     @if($reorder)<th class="y-col-drag"></th>@endif
                     @if(count($bulk))
-                        <th class="y-col-check"><input type="checkbox" id="y-check-all" aria-label="Select all"></th>
+                        <th class="y-col-check"><input type="checkbox" id="y-check-all" aria-label="{{ __('Select all') }}"></th>
                     @endif
                     @foreach($fields as $field)
                         <th>
@@ -129,7 +129,7 @@
                         @endif
                         @if(count($bulk))
                             <td class="y-col-check">
-                                <input type="checkbox" class="y-row-check" name="ids[]" value="{{ $record->getKey() }}" form="y-bulk-form" aria-label="Select row">
+                                <input type="checkbox" class="y-row-check" name="ids[]" value="{{ $record->getKey() }}" form="y-bulk-form" aria-label="{{ __('Select row') }}">
                             </td>
                         @endif
                         @foreach($fields as $field)
@@ -142,11 +142,11 @@
                                 @if($res->canDelete($yurbaUser, $record))
                                     <form method="POST" action="{{ route('yurba.resource.restore', [$res->uriKey(), $record->getKey()]) }}" class="y-inline">
                                         @csrf
-                                        <button type="submit" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="Restore" aria-label="Restore" @endif>@include('yurba::partials.action-inner', ['icon' => 'restore', 'text' => 'Restore'])</button>
+                                        <button type="submit" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Restore') }}" aria-label="{{ __('Restore') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'restore', 'text' => __('Restore')])</button>
                                     </form>
-                                    <form method="POST" action="{{ route('yurba.resource.forceDelete', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm('Permanently delete this {{ \Illuminate\Support\Str::lower($res->label()) }}? This cannot be undone.');" class="y-inline">
+                                    <form method="POST" action="{{ route('yurba.resource.forceDelete', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm('{{ __('Permanently delete this :name? This cannot be undone.', ['name' => \Illuminate\Support\Str::lower($res->label())]) }}');" class="y-inline">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="y-btn y-btn__danger y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="Delete permanently" aria-label="Delete permanently" @endif>@include('yurba::partials.action-inner', ['icon' => 'delete_forever', 'text' => 'Delete permanently'])</button>
+                                        <button type="submit" class="y-btn y-btn__danger y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Delete permanently') }}" aria-label="{{ __('Delete permanently') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'delete_forever', 'text' => __('Delete permanently')])</button>
                                     </form>
                                 @endif
                             @else
@@ -163,15 +163,15 @@
                                     @endforeach
                                 @endif
                                 @if($res->canView($yurbaUser, $record))
-                                    <a href="{{ route('yurba.resource.show', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="View" aria-label="View" @endif>@include('yurba::partials.action-inner', ['icon' => 'visibility', 'text' => 'View'])</a>
+                                    <a href="{{ route('yurba.resource.show', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('View') }}" aria-label="{{ __('View') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'visibility', 'text' => __('View')])</a>
                                 @endif
                                 @if($res->canUpdate($yurbaUser, $record))
-                                    <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="Edit" aria-label="Edit" @endif>@include('yurba::partials.action-inner', ['icon' => 'edit', 'text' => 'Edit'])</a>
+                                    <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Edit') }}" aria-label="{{ __('Edit') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'edit', 'text' => __('Edit')])</a>
                                 @endif
                                 @if($res->canDelete($yurbaUser, $record))
-                                    <form method="POST" action="{{ route('yurba.resource.destroy', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm('Delete this {{ \Illuminate\Support\Str::lower($res->label()) }}?');" class="y-inline">
+                                    <form method="POST" action="{{ route('yurba.resource.destroy', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm('{{ __('Delete this :name?', ['name' => \Illuminate\Support\Str::lower($res->label())]) }}');" class="y-inline">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="y-btn y-btn__danger y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="Delete" aria-label="Delete" @endif>@include('yurba::partials.action-inner', ['icon' => 'delete', 'text' => 'Delete'])</button>
+                                        <button type="submit" class="y-btn y-btn__danger y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Delete') }}" aria-label="{{ __('Delete') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'delete', 'text' => __('Delete')])</button>
                                     </form>
                                 @endif
                             @endif
@@ -179,7 +179,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $colspan }}" class="y-empty-row">Nothing found.</td></tr>
+                    <tr><td colspan="{{ $colspan }}" class="y-empty-row">{{ __('Nothing found.') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

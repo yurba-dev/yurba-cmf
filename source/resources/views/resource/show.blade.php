@@ -6,20 +6,20 @@
 @section('content')
     <div class="y-toolbar">
         <span class="y-toolbar__actions">
-            <a href="{{ route('yurba.resource.index', $res->uriKey()) }}" class="y-btn y-btn__ghost">← Back</a>
+            <a href="{{ route('yurba.resource.index', $res->uriKey()) }}" class="y-btn y-btn__ghost">← {{ __('Back') }}</a>
             @if($preview = $res->previewUrl($record))
                 <a href="{{ $preview }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost">
-                    <span class="material-symbols-rounded">visibility</span> Preview
+                    <span class="material-symbols-rounded">visibility</span> {{ __('Preview') }}
                 </a>
             @endif
             @if($res->canUpdate($yurbaUser, $record))
-                <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__primary">Edit</a>
+                <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__primary">{{ __('Edit') }}</a>
             @endif
             @if($res->canDelete($yurbaUser, $record))
                 <form method="POST" action="{{ route('yurba.resource.destroy', [$res->uriKey(), $record->getKey()]) }}"
-                      onsubmit="return confirm('Delete this {{ \Illuminate\Support\Str::lower($res->label()) }}?');" class="y-inline">
+                      onsubmit="return confirm('{{ __('Delete this :name?', ['name' => \Illuminate\Support\Str::lower($res->label())]) }}');" class="y-inline">
                     @csrf @method('DELETE')
-                    <button type="submit" class="y-btn y-btn__danger">Delete</button>
+                    <button type="submit" class="y-btn y-btn__danger">{{ __('Delete') }}</button>
                 </form>
             @endif
         </span>
@@ -59,15 +59,15 @@
 
     @if($res->hasRevisions())
         @php($revisions = $res->revisions($record))
-        <h2 class="y-detail__tab">Revisions</h2>
+        <h2 class="y-detail__tab">{{ __('Revisions') }}</h2>
         @if($revisions->isEmpty())
-            <p class="y-muted">No revisions recorded yet.</p>
+            <p class="y-muted">{{ __('No revisions recorded yet.') }}</p>
         @else
             @php($current = $record->getAttributes())
             <div class="y-table-wrap">
                 <table class="y-table">
                     <thead>
-                        <tr><th>When</th><th>By</th><th>Changed vs current</th><th></th></tr>
+                        <tr><th>{{ __('When') }}</th><th>{{ __('By') }}</th><th>{{ __('Changed vs current') }}</th><th></th></tr>
                     </thead>
                     <tbody>
                         @foreach($revisions as $rev)
@@ -76,8 +76,8 @@
                                 <td>{{ $rev->created_at?->diffForHumans() }} <span class="y-muted">· {{ $rev->created_at }}</span></td>
                                 <td>{{ $rev->user_name ?? '—' }}</td>
                                 <td>
-                                    @if($loop->first && empty($changed))<span class="y-pill y-pill--ok">current</span>
-                                    @elseif(empty($changed))<span class="y-muted">no differences</span>
+                                    @if($loop->first && empty($changed))<span class="y-pill y-pill--ok">{{ __('current') }}</span>
+                                    @elseif(empty($changed))<span class="y-muted">{{ __('no differences') }}</span>
                                     @else{{ implode(', ', array_slice($changed, 0, 6)) }}@if(count($changed) > 6) +{{ count($changed) - 6 }}@endif
                                     @endif
                                 </td>
@@ -85,9 +85,9 @@
                                     <div class="y-col-actions">
                                         @if(! ($loop->first && empty($changed)) && $res->canUpdate($yurbaUser, $record))
                                             <form method="POST" action="{{ route('yurba.resource.revision.restore', [$res->uriKey(), $record->getKey(), $rev->id]) }}"
-                                                  onsubmit="return confirm('Restore this revision? The current state is saved as a new revision.');" class="y-inline">
+                                                  onsubmit="return confirm('{{ __('Restore this revision? The current state is saved as a new revision.') }}');" class="y-inline">
                                                 @csrf
-                                                <button type="submit" class="y-btn y-btn__ghost y-btn__xs">Restore</button>
+                                                <button type="submit" class="y-btn y-btn__ghost y-btn__xs">{{ __('Restore') }}</button>
                                             </form>
                                         @endif
                                     </div>

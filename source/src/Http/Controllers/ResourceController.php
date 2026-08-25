@@ -56,7 +56,7 @@ class ResourceController extends Controller
 
         return redirect()
             ->route('yurba.resource.index', $res->uriKey())
-            ->with('yurba_status', $res->label().' created.');
+            ->with('yurba_status', __(':name created.', ['name' => $res->label()]));
     }
 
     public function show(string $resource, int|string $id)
@@ -120,7 +120,7 @@ class ResourceController extends Controller
 
         return redirect()
             ->route('yurba.resource.edit', [$res->uriKey(), $record->getKey()])
-            ->with('yurba_status', 'Reverted to the selected revision.');
+            ->with('yurba_status', __('Reverted to the selected revision.'));
     }
 
     public function update(Request $request, string $resource, int|string $id)
@@ -142,12 +142,12 @@ class ResourceController extends Controller
         if ($request->input('after') === 'edit') {
             return redirect()
                 ->route('yurba.resource.edit', [$res->uriKey(), $record->getKey()])
-                ->with('yurba_status', $res->label().' updated.');
+                ->with('yurba_status', __(':name updated.', ['name' => $res->label()]));
         }
 
         return redirect()
             ->route('yurba.resource.index', $res->uriKey())
-            ->with('yurba_status', $res->label().' updated.');
+            ->with('yurba_status', __(':name updated.', ['name' => $res->label()]));
     }
 
     public function destroy(string $resource, int|string $id)
@@ -158,7 +158,7 @@ class ResourceController extends Controller
 
         $record->delete();
 
-        return back()->with('yurba_status', $res->label().' deleted.');
+        return back()->with('yurba_status', __(':name deleted.', ['name' => $res->label()]));
     }
 
     public function restore(string $resource, int|string $id)
@@ -171,7 +171,7 @@ class ResourceController extends Controller
 
         $record->restore();
 
-        return back()->with('yurba_status', $res->label().' restored.');
+        return back()->with('yurba_status', __(':name restored.', ['name' => $res->label()]));
     }
 
     public function forceDelete(string $resource, int|string $id)
@@ -184,7 +184,7 @@ class ResourceController extends Controller
 
         $record->forceDelete();
 
-        return back()->with('yurba_status', $res->label().' permanently deleted.');
+        return back()->with('yurba_status', __(':name permanently deleted.', ['name' => $res->label()]));
     }
 
     public function bulk(Request $request, string $resource)
@@ -197,7 +197,7 @@ class ResourceController extends Controller
 
         $ids = array_filter((array) $request->input('ids', []));
         if (empty($ids)) {
-            return back()->with('yurba_status', 'No rows were selected.');
+            return back()->with('yurba_status', __('No rows were selected.'));
         }
 
         $records = $res->query()->whereKey($ids)->get();
@@ -210,7 +210,7 @@ class ResourceController extends Controller
             $res->runBulk($action, $records);
         }
 
-        return back()->with('yurba_status', $records->count().' '.$res->pluralLabel().' — '.$actions[$action].'.');
+        return back()->with('yurba_status', __(':count :items — :action.', ['count' => $records->count(), 'items' => $res->pluralLabel(), 'action' => $actions[$action]]));
     }
 
     // persist a drag-and-drop reorder: writes 1..N into the position column in the
@@ -245,7 +245,7 @@ class ResourceController extends Controller
         $label = is_array($def) ? ($def['label'] ?? $action) : $def;
         $res->runAction($action, $record);
 
-        return back()->with('yurba_status', $label.' — done.');
+        return back()->with('yurba_status', __(':label — done.', ['label' => $label]));
     }
 
     // form fields for this request: not virtual, and show-when condition satisfied

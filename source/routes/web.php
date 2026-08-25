@@ -19,6 +19,10 @@ $middleware = (array) config('yurba.middleware', ['web']);
 if (config('yurba.sitemap.enabled', true)) {
     Route::get('sitemap.xml', [SitemapController::class, 'index'])
         ->middleware('web')->name('yurba.sitemap');
+
+    // /sitemap-{name}.xml — a single named sitemap when yurba.sitemap.sitemaps is set
+    Route::get('sitemap-{name}.xml', [SitemapController::class, 'show'])
+        ->middleware('web')->where('name', '[A-Za-z0-9_-]+')->name('yurba.sitemap.named');
 }
 
 Route::prefix($prefix)->middleware($middleware)->name('yurba.')->group(function () {

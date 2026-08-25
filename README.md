@@ -7,11 +7,12 @@ A lightweight, dependency-free auto-CRUD admin panel and content framework for L
 - Auto-CRUD: list / create / edit / show / delete from a resource class
 - 17 field types, form tabs & sections, conditional fields, validation rules
 - List filters, global search, sortable/searchable columns, CSV import/export
-- Media library + picker, dependency-free image optimisation (GD) + thumbnails
+- Media library + picker, dependency-free image optimisation (GD) + on-demand thumbnails
 - Revisions/versioning, scheduled publishing + signed draft preview
-- SEO meta fields (polymorphic) + public XML sitemap
+- SEO meta fields (polymorphic) + public XML sitemap (single or multi-file index)
 - URL redirect manager with global middleware
 - Per-resource, per-action authorization (Laravel policies) + soft-delete trash
+- Translatable panel interface (English built in, Russian & Ukrainian bundled)
 - Built-in dashboard, settings pages, and generator commands
 
 ## Requirements
@@ -25,7 +26,7 @@ A lightweight, dependency-free auto-CRUD admin panel and content framework for L
 ```bash
 composer require yurba/cmf
 php artisan yurba:install   # publishes config + assets, creates app/Admin
-php artisan migrate         # media, revisions, seo, redirects tables
+php artisan migrate         # media, revisions, seo, redirects, content, optimization-log tables
 ```
 
 Gate who may enter the panel (any truthy check) in a service provider:

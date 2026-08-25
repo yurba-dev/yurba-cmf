@@ -1,5 +1,5 @@
 @if ($paginator->hasPages())
-    <nav class="y-pager" role="navigation" aria-label="Pagination">
+    <nav class="y-pager" role="navigation" aria-label="{{ __('Pagination') }}">
         <div class="y-pager__pages">
             @if ($paginator->onFirstPage())
                 <span class="y-page is-disabled">←</span>
@@ -38,11 +38,11 @@
                     <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                 @endif
             @endforeach
-            <span>Page</span>
+            <span>{{ __('Page') }}</span>
             <input type="number" name="page" min="1" max="{{ $paginator->lastPage() }}"
-                   value="{{ $paginator->currentPage() }}" class="y-pager-jump__input" aria-label="Go to page">
-            <span>of {{ $paginator->lastPage() }}</span>
-            <button type="submit" class="y-btn y-btn__ghost y-btn__xs">Go</button>
+                   value="{{ $paginator->currentPage() }}" class="y-pager-jump__input" aria-label="{{ __('Go to page') }}">
+            <span>{{ __('of') }} {{ $paginator->lastPage() }}</span>
+            <button type="submit" class="y-btn y-btn__ghost y-btn__xs">{{ __('Go') }}</button>
         </form>
     </nav>
 @endif

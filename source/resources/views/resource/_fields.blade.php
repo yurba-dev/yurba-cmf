@@ -21,6 +21,13 @@
             @include($field->component(), ['field' => $field, 'record' => $record])
             @error($field->name)<p class="y-error">{{ $message }}</p>@enderror
             @if($field->help)<p class="y-help">{{ $field->help }}</p>@endif
+            @if($field->helpLinks)
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    @foreach($field->helpLinks as $hl)
+                        <a href="{{ $hl['url'] }}" class="y-btn y-btn__ghost y-btn__xs">{{ $hl['label'] }}</a>
+                    @endforeach
+                </div>
+            @endif
         </div>
     @endforeach
 @endforeach

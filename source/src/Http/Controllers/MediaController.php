@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Yurba\Cmf\Media\ImageOptimizer;
 use Yurba\Cmf\Media\Media;
+use Yurba\Cmf\Media\MediaOptimization;
 
 class MediaController extends Controller
 {
@@ -71,18 +72,19 @@ class MediaController extends Controller
         $optimize = app('yurba.cmf')->mediaOptimize();
         $maxWidth = (int) config('yurba.media.max_width', 2560);
         $quality = (int) config('yurba.media.quality', 82);
-        $thumbs = $optimize && (bool) config('yurba.media.thumbnails', true);
-        $thumbWidth = (int) config('yurba.media.thumb_width', 480);
         $created = [];
 
         foreach ((array) $request->file('files', []) as $file) {
-            $data = (string) file_get_contents($file->getRealPath());
+            $data = $origData = (string) file_get_contents($file->getRealPath());
+            $origSize = strlen($origData);
             $mime = (string) $file->getClientMimeType();
             $isImage = str_starts_with($mime, 'image/');
             $width = $height = null;
+            $optimized = false;
 
             if ($isImage && $optimize && ($opt = ImageOptimizer::process($data, $maxWidth, $quality))) {
                 [$data, $width, $height] = $opt;
+                $optimized = true;
             } elseif ($isImage && ($info = @getimagesizefromstring($data))) {
                 [$width, $height] = $info;
             }
@@ -91,22 +93,33 @@ class MediaController extends Controller
             $path = $dir.'/'.date('Y/m').'/'.Str::random(40).'.'.$ext;
             Storage::disk($disk)->put($path, $data);
 
-            $thumbPath = null;
-            if ($isImage && $thumbs && ($t = ImageOptimizer::thumbnail($data, $thumbWidth))) {
-                $thumbPath = $dir.'-thumbs/'.Str::after($path, $dir.'/');
-                Storage::disk($disk)->put($thumbPath, $t[0]);
-            }
-
+            // thumbnails are generated on demand (Media::thumb), not at upload
             $created[] = Media::create([
                 'disk' => $disk,
                 'path' => $path,
-                'thumb_path' => $thumbPath,
+                'thumb_path' => null,
                 'name' => $file->getClientOriginalName(),
                 'mime' => $mime,
                 'size' => strlen($data),
                 'width' => $width,
                 'height' => $height,
             ]);
+
+            if ($isImage) {
+                [$status, $reason] = MediaOptimization::classify($origData, $optimize, $optimized, false);
+                MediaOptimization::record([
+                    'path' => $path,
+                    'source' => 'upload',
+                    'status' => $status,
+                    'reason' => $reason,
+                    'optimized' => $optimized,
+                    'thumbnailed' => false,
+                    'width' => $width,
+                    'height' => $height,
+                    'orig_size' => $origSize,
+                    'new_size' => strlen($data),
+                ]);
+            }
         }
 
         // the picker uploads via fetch and wants the created records back
@@ -116,7 +129,7 @@ class MediaController extends Controller
 
         $count = count($created);
 
-        return back()->with('yurba_status', $count.' file'.($count === 1 ? '' : 's').' uploaded.');
+        return back()->with('yurba_status', __(':count file(s) uploaded.', ['count' => $count]));
     }
 
     public function destroy(int|string $id)
@@ -124,12 +137,22 @@ class MediaController extends Controller
         $this->guard();
 
         $media = Media::findOrFail($id);
-        Storage::disk($media->disk)->delete($media->path);
+        $storage = Storage::disk($media->disk);
+        $storage->delete($media->path);
+
+        // remove any cached on-demand thumbnails ({dir}-thumbs/{width}/{rel})
+        $dir = trim((string) config('yurba.media.dir', 'media'), '/');
+        if ($dir !== '' && str_starts_with($media->path, $dir.'/')) {
+            $rel = Str::after($media->path, $dir.'/');
+            foreach ($storage->directories($dir.'-thumbs') as $widthDir) {
+                $storage->delete($widthDir.'/'.$rel);
+            }
+        }
         if ($media->thumb_path) {
-            Storage::disk($media->disk)->delete($media->thumb_path);
+            $storage->delete($media->thumb_path); // legacy single-thumb cleanup
         }
         $media->delete();
 
-        return back()->with('yurba_status', 'Media deleted.');
+        return back()->with('yurba_status', __('Media deleted.'));
     }
 }

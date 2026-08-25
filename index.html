@@ -48,6 +48,7 @@
             <a href="#pages">Custom pages</a>
             <a href="#content">Content pages</a>
             <a href="#authorization">Authorization</a>
+            <a href="#localization">Localization</a>
             <a href="#theming">Theming</a>
         </div>
         <div class="sidebar-group">
@@ -117,6 +118,11 @@
                         <div class="feature-title">Authorization</div>
                         <div class="feature-desc">Per-resource, per-action gates via Laravel policies, plus soft-delete trash.</div>
                     </div>
+                    <div class="feature">
+                        <span class="material-symbols-rounded">translate</span>
+                        <div class="feature-title">Localization</div>
+                        <div class="feature-desc">Translatable panel interface — English built in, Russian and Ukrainian bundled.</div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -135,7 +141,7 @@
                     <div class="code-block">
                         <pre><code class="language-bash">composer require yurba/cmf
 php artisan yurba:install   # publishes config + assets, creates app/Admin
-php artisan migrate         # media, revisions, seo, redirects tables</code></pre>
+php artisan migrate         # media, revisions, seo, redirects, content, optimization-log tables</code></pre>
                     </div>
                     <p class="note">The service provider is auto-discovered. The panel lives at <code>/admin</code> — change the prefix in <code>config/yurba.php</code>.</p>
                 </div>
@@ -468,6 +474,7 @@ class PostResource extends Resource
                         <tr><td><code>-&gt;visibleWhen('status', 'publish')</code></td><td>Show the field only when another field matches.</td></tr>
                         <tr><td><code>-&gt;readonly()</code></td><td>Render read-only; submitted value ignored on save.</td></tr>
                         <tr><td><code>-&gt;default($v)</code> / <code>-&gt;placeholder($s)</code> / <code>-&gt;help($s)</code></td><td>Default value, placeholder, help text.</td></tr>
+                        <tr><td><code>-&gt;thumb('small')</code></td><td>Image / Media fields — thumbnail preset (or pixel width) rendered on the index. See <a href="#media">Media library</a>.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -748,7 +755,7 @@ $meta = Seo::resolve($post, [
 
             <div class="doc-section">
                 <div class="doc-section-title">Sitemap &amp; redirects</div>
-                <p>The public <code>/sitemap.xml</code> combines <code>static</code> URLs with model-driven <code>sources</code> (see <a href="#config">Configuration → Sitemap</a>); records flagged <code>noindex</code> are excluded. The redirect manager stores old → new URL pairs and applies them through global middleware, optionally counting hits.</p>
+                <p>The public <code>/sitemap.xml</code> combines <code>static</code> URLs with model-driven <code>sources</code> (see <a href="#config">Configuration → Sitemap</a>); records flagged <code>noindex</code> are excluded. Split a large site into several named files with <code>sitemaps</code> — the top level then becomes a sitemap index over <code>/sitemap-{name}.xml</code>. The redirect manager stores old → new URL pairs and applies them through global middleware, optionally counting hits.</p>
             </div>
         </section>
 
@@ -782,7 +789,25 @@ Image::make('thumbnail')->dir('thumbs'),</code></pre>
 
             <div class="doc-section">
                 <div class="doc-section-title">Optimisation</div>
-                <p>With <code>media.optimize</code> on, uploads are downscaled to <code>max_width</code>, re-encoded at <code>quality</code> and stripped of metadata; a thumbnail is generated when <code>thumbnails</code> is on. Backfill existing files with <code>yurba:media-optimize</code>. The inline editor uploads its images separately under <code>uploads.dir</code>.</p>
+                <p>With <code>media.optimize</code> on, uploads are downscaled to <code>max_width</code>, re-encoded at <code>quality</code> and stripped of metadata. Backfill existing files with <code>yurba:media-optimize</code>. The inline editor uploads its images separately under <code>uploads.dir</code>. Every outcome is recorded to the optimization log (<code>media.log</code>), reachable from <strong>Settings → Optimize images</strong>.</p>
+            </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">Thumbnails</div>
+                <p>Thumbnails are <strong>generated on demand</strong>, not at upload time: the first request for a size renders it and caches it under <code>{dir}-thumbs/{width}/</code>, served statically thereafter. Sizes come from the named <code>thumb_presets</code> (<code>small</code> / <code>medium</code> / <code>large</code>) — or any raw pixel width.</p>
+                <p>Declare the size an image field should render on the index with <code>-&gt;thumb()</code>; on the frontend, resolve one with <code>Media::thumb()</code>. Both return the original image untouched when a thumbnail can't be derived (optimisation off, non-raster file, unknown preset).</p>
+                <div class="code-block">
+                    <pre><code class="language-php">use Yurba\Cmf\Fields\Media;
+use Yurba\Cmf\Media\Media as MediaFile;
+
+// in a resource — render the 'small' preset in the table
+Media::make('cover')->thumb('small'),
+
+// on the frontend — a preset name or a raw width
+&lt;img src="{{ MediaFile::thumb($post->cover, 'large') }}" alt=""&gt;
+&lt;img src="{{ MediaFile::thumb($post->cover, 800) }}" alt=""&gt;</code></pre>
+                </div>
+                <p class="note">The <strong>Image usage &amp; thumbnails</strong> screen (linked from <strong>Settings → Panel</strong>) lists where each library image is used and which thumbnails exist, and lets you generate or delete thumbnails — per row, in bulk, or across the whole library — and remove unused files.</p>
             </div>
         </section>
 
@@ -804,6 +829,14 @@ return [
     'brand'      => env('YURBA_BRAND', 'YurbaCMF'),
     'logo'       => env('YURBA_LOGO', null),
     'hide_brand' => env('YURBA_HIDE_BRAND', false),
+
+    // Panel interface language (English needs no language pack)
+    'locale'  => env('YURBA_LOCALE', 'en'),
+    'locales' => [
+        'en' => 'English',
+        'ru' => 'Русский',
+        'uk' => 'Українська',
+    ],
 
     // Routing & auth
     'prefix'     => env('YURBA_PREFIX', 'admin'),
@@ -844,17 +877,22 @@ return [
 
     // Media library
     'media' => [
-        'enabled'     => env('YURBA_MEDIA', true),
-        'disk'        => env('YURBA_MEDIA_DISK', 'public'),
-        'dir'         => 'media',
-        'mimes'       => 'jpeg,jpg,png,gif,webp,avif,pdf',
-        'max_kb'      => 8192,
-        'per_page'    => 28,
-        'optimize'    => env('YURBA_MEDIA_OPTIMIZE', true),
-        'max_width'   => 2560,
-        'quality'     => 82,
-        'thumbnails'  => true,
-        'thumb_width' => 480,
+        'enabled'       => env('YURBA_MEDIA', true),
+        'disk'          => env('YURBA_MEDIA_DISK', 'public'),
+        'relative_urls' => env('YURBA_MEDIA_RELATIVE_URLS', true),
+        'dir'           => 'media',
+        'mimes'         => 'jpeg,jpg,png,gif,webp,avif,pdf',
+        'max_kb'        => 8192,
+        'per_page'      => 28,
+        'optimize'      => env('YURBA_MEDIA_OPTIMIZE', true),
+        'max_width'     => 2560,
+        'quality'       => 82,
+        // thumbnails are generated on demand and cached under {dir}-thumbs/{width}/
+        'thumb_presets' => ['small' => 320, 'medium' => 640, 'large' => 1280],
+        'thumb_default' => 'small',
+        // optimization log (Settings → Optimize images → log); log_keep bounds the table
+        'log'           => env('YURBA_MEDIA_LOG', true),
+        'log_keep'      => env('YURBA_MEDIA_LOG_KEEP', 1000),
     ],
 
     // URL redirects
@@ -875,6 +913,12 @@ return [
             //     'changefreq' => 'weekly', 'priority' => '0.7',
             // ],
         ],
+        // Optional: split into several files. When set, /sitemap.xml becomes a
+        // <sitemapindex> and each entry is served at /sitemap-{name}.xml.
+        // 'sitemaps' => [
+        //     'pages' => ['static' => ['/', '/about']],
+        //     'blog'  => ['sources' => [/* …as above… */]],
+        // ],
     ],
 
     // Rich-text editor driver: 'yurba' | 'none' | 'custom'
@@ -912,6 +956,8 @@ return [
                         <tr><td><code>brand</code></td><td><code>'YurbaCMF'</code></td><td>Sidebar / page-title brand text.</td></tr>
                         <tr><td><code>logo</code></td><td><code>null</code></td><td>Sidebar logo URL; <code>null</code> uses the bundled logo.</td></tr>
                         <tr><td><code>hide_brand</code></td><td><code>false</code></td><td>Show only the logo in the sidebar (brand still used in titles).</td></tr>
+                        <tr><td><code>locale</code></td><td><code>'en'</code></td><td>Default panel-interface language. English needs no language pack.</td></tr>
+                        <tr><td><code>locales</code></td><td><code>en / ru / uk</code></td><td>Languages the admin may switch between (code =&gt; label). See <a href="#localization">Localization</a>.</td></tr>
                         <tr><td><code>action_icons</code></td><td><code>true</code></td><td>Render row actions as icons instead of text labels.</td></tr>
                         <tr><td><code>publish_scheduler</code></td><td><code>true</code></td><td>Register the every-minute scheduled-publish command.</td></tr>
                         <tr><td><code>per_page</code></td><td><code>20</code></td><td>Default rows per page in resource tables.</td></tr>
@@ -930,6 +976,7 @@ return [
                     <tbody>
                         <tr><td><code>enabled</code></td><td><code>true</code></td><td>Show the <strong>Media</strong> tab and library.</td></tr>
                         <tr><td><code>disk</code></td><td><code>'public'</code></td><td>Storage disk files live on (local, S3, …).</td></tr>
+                        <tr><td><code>relative_urls</code></td><td><code>true</code></td><td>Store site-root-relative URLs (<code>/storage/…</code>) so picked media survives a domain change; off for external CDN/S3 disks.</td></tr>
                         <tr><td><code>dir</code></td><td><code>'media'</code></td><td>Base directory on the disk.</td></tr>
                         <tr><td><code>mimes</code></td><td><code>jpeg,png,webp,pdf,…</code></td><td>Allowed upload mimes (SVG excluded on purpose).</td></tr>
                         <tr><td><code>max_kb</code></td><td><code>8192</code></td><td>Max upload size, in KB.</td></tr>
@@ -937,8 +984,10 @@ return [
                         <tr><td><code>optimize</code></td><td><code>true</code></td><td>Downscale + re-encode uploads (GD) and strip metadata.</td></tr>
                         <tr><td><code>max_width</code></td><td><code>2560</code></td><td>Width (px) images are downscaled to when optimising.</td></tr>
                         <tr><td><code>quality</code></td><td><code>82</code></td><td>JPEG / WebP re-encode quality.</td></tr>
-                        <tr><td><code>thumbnails</code></td><td><code>true</code></td><td>Generate a small derivative for grids / the picker.</td></tr>
-                        <tr><td><code>thumb_width</code></td><td><code>480</code></td><td>Thumbnail width, in px.</td></tr>
+                        <tr><td><code>thumb_presets</code></td><td><code>small 320 / medium 640 / large 1280</code></td><td>Named thumbnail widths (px). Reference a preset from a field's <code>-&gt;thumb()</code> or <code>Media::thumb()</code>.</td></tr>
+                        <tr><td><code>thumb_default</code></td><td><code>'small'</code></td><td>Preset used when a thumbnail is requested without a size.</td></tr>
+                        <tr><td><code>log</code></td><td><code>true</code></td><td>Record every optimization outcome (viewable from <strong>Settings → Optimize images</strong>).</td></tr>
+                        <tr><td><code>log_keep</code></td><td><code>1000</code></td><td>Cap the log table to the most recent N rows (<code>0</code> = unlimited).</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -996,9 +1045,11 @@ return [
                         <tr><td><code>enabled</code></td><td><code>true</code></td><td>Serve the public <code>/sitemap.xml</code>.</td></tr>
                         <tr><td><code>static</code></td><td><code>[]</code></td><td>Extra URLs added verbatim (each <code>loc</code> + optional <code>changefreq</code>/<code>priority</code>).</td></tr>
                         <tr><td><code>sources</code></td><td><code>[]</code></td><td>Model-driven URL sets — one entry per content type (keys below).</td></tr>
+                        <tr><td><code>sitemaps</code></td><td><code>[]</code></td><td>Optional named sub-sitemaps (<code>name =&gt; ['static' =&gt; …, 'sources' =&gt; …]</code>). When set, the top level becomes a sitemap index.</td></tr>
                     </tbody>
                 </table>
                 <p class="note">Each <code>sources</code> entry: <code>model</code>, <code>route</code> (named route), <code>param</code> (route parameter), <code>key</code> (model attribute bound to it), optional <code>scope</code> (query scope[s]), <code>filter</code> (where-equals map), <code>lastmod</code> (column), <code>changefreq</code> and <code>priority</code>. Records flagged <code>noindex</code> in their SEO block are excluded automatically.</p>
+                <p class="note"><strong>Multiple sitemaps.</strong> Populate <code>sitemaps</code> to split a large site into several files: <code>/sitemap.xml</code> is then served as a <code>&lt;sitemapindex&gt;</code> and each named set at <code>/sitemap-{name}.xml</code>. Each named entry takes the same <code>static</code> / <code>sources</code> keys. Leave <code>sitemaps</code> empty for a single flat <code>urlset</code>.</p>
             </div>
 
             <div class="doc-section">
@@ -1191,6 +1242,38 @@ content('home', 'hero_title', 'Welcome');</code></pre>
 
         <hr class="section-divider">
 
+        <section id="localization">
+            <div class="doc-header">
+                <h2 class="doc-component-name">Localization</h2>
+                <p class="doc-component-desc">The panel interface can be translated. English is built in and needs no language pack; Russian and Ukrainian ship with the package. The admin picks a language from <strong>Settings → Panel</strong>.</p>
+            </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">Available languages</div>
+                <p>List the languages the panel may switch between in <code>config/yurba.php</code> as <code>code =&gt; label</code>, and set the default with <code>locale</code>. The choice applies to the panel UI only, not your frontend.</p>
+                <div class="code-block">
+                    <pre><code class="language-php">// config/yurba.php
+'locale'  => env('YURBA_LOCALE', 'en'),
+'locales' => [
+    'en' => 'English',
+    'ru' => 'Русский',
+    'uk' => 'Українська',
+],</code></pre>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">How strings are translated</div>
+                <p>Interface strings are plain English keys resolved through Laravel's JSON translations (<code>__('Save changes')</code>). English renders the key verbatim — no file needed — while <code>ru</code> and <code>uk</code> are backed by the bundled <code>lang/{locale}.json</code>. Publish them to override wording or add your own locale:</p>
+                <div class="code-block">
+                    <pre><code class="language-bash">php artisan vendor:publish --tag=yurba-lang   # copies lang/{ru,uk}.json into your app</code></pre>
+                </div>
+                <p class="note">Add a language by dropping a <code>lang/{code}.json</code> in your app and listing its <code>code =&gt; label</code> under <code>locales</code>. Any key you leave out falls back to the English source string.</p>
+            </div>
+        </section>
+
+        <hr class="section-divider">
+
         <section id="theming">
             <div class="doc-header">
                 <h2 class="doc-component-name">Theming</h2>
@@ -1204,7 +1287,7 @@ content('home', 'hero_title', 'Welcome');</code></pre>
     --y-accent-ink: #15803d;
 }</code></pre>
                 </div>
-                <p class="note">Brand name, logo and accent are editable at runtime from <strong>Settings → Panel</strong>. Turn on <em>Hide brand name</em> to show only the logo.</p>
+                <p class="note">Brand name, logo, accent and <a href="#localization">interface language</a> are editable at runtime from <strong>Settings → Panel</strong>. Turn on <em>Hide brand name</em> to show only the logo.</p>
             </div>
         </section>
 
@@ -1226,7 +1309,7 @@ content('home', 'hero_title', 'Welcome');</code></pre>
                         <tr><td><code>yurba:resource {Name}</code></td><td>Scaffold a resource. <code>--from-schema</code> maps table columns, <code>--register</code> adds it to config.</td></tr>
                         <tr><td><code>yurba:field {Name}</code></td><td>Scaffold a custom field + its Blade partial.</td></tr>
                         <tr><td><code>yurba:settings {Name}</code></td><td>Scaffold a settings page.</td></tr>
-                        <tr><td><code>yurba:media-optimize</code></td><td>Backfill thumbnails and downscale oversized library images.</td></tr>
+                        <tr><td><code>yurba:media-optimize</code></td><td>Downscale + re-encode oversized library images (thumbnails are generated lazily on demand).</td></tr>
                         <tr><td><code>yurba:publish-scheduled</code></td><td>Promote scheduled records whose publish time has arrived (run every minute).</td></tr>
                     </tbody>
                 </table>
