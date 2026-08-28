@@ -14,7 +14,7 @@ use Yurba\Cmf\Settings\Store;
 class Panel
 {
     // YurbaCMF release, shown in the panel footer
-    public const VERSION = '1.0.3';
+    public const VERSION = '1.0.5';
 
     protected ?Closure $gate = null;
 
