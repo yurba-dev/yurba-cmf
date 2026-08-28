@@ -46,11 +46,27 @@
         @endif
     @endif
 
+    @if($editing && $res->isMultilingual())
+        @php($activeLocale = $locale ?? \Yurba\Cmf\Facades\Yurba::defaultLocale())
+        <div class="y-locale-bar">
+            <div class="y-locale-bar__tabs">
+                @foreach(\Yurba\Cmf\Facades\Yurba::contentLocales() as $code => $def)
+                    <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}?locale={{ $code }}"
+                       class="y-locale-bar__tab {{ $code === $activeLocale ? 'is-active' : '' }}">{{ $def['label'] }}</a>
+                @endforeach
+            </div>
+            <span class="y-locale-bar__note">{{ __('Shared fields apply to all languages.') }}</span>
+        </div>
+    @endif
+
     <form method="POST"
           action="{{ $editing ? route('yurba.resource.update', [$res->uriKey(), $record->getKey()]) : route('yurba.resource.store', $res->uriKey()) }}"
           enctype="multipart/form-data" class="y-form y-form--card">
         @csrf
         @if($editing) @method('PUT') @endif
+        @if($editing && ($locale ?? null))
+            <input type="hidden" name="_locale" value="{{ $locale }}">
+        @endif
 
         @if($hasTabs)
             <div class="y-tabs" role="tablist">

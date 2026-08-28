@@ -28,6 +28,7 @@ class ServiceProvider extends BaseServiceProvider
         // string-keyed JSON translations (lang/{locale}.json); English needs no file.
         $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
         $router->aliasMiddleware('yurba.auth', Authorize::class);
+        $router->aliasMiddleware('yurba.locale', \Yurba\Cmf\Http\Middleware\SetLocale::class);
 
         View::composer('yurba::*', function ($view) {
             $panel = app('yurba.cmf');

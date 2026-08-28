@@ -26,6 +26,12 @@ abstract class Field
     // preferred thumbnail size for image fields: preset name or pixel width; null = original.
     public int|string|null $thumb = null;
 
+    // multilingual: translatable holds a separate value per locale; copyOnCreate
+    // seeds a new locale from the default one, then diverges. shared (the default)
+    // keeps one value across every locale.
+    public bool $translatable = false;
+    public bool $copyOnCreate = false;
+
     // form grouping: a tab and/or a titled section
     public ?string $tab = null;
     public ?string $section = null;
@@ -131,6 +137,23 @@ abstract class Field
         return $this;
     }
 
+    // give this field its own value per locale (edited under each language tab)
+    public function translatable(bool $v = true): static
+    {
+        $this->translatable = $v;
+
+        return $this;
+    }
+
+    // translatable, but a new locale starts pre-filled from the default one
+    public function copyOnCreate(bool $v = true): static
+    {
+        $this->translatable = true;
+        $this->copyOnCreate = $v;
+
+        return $this;
+    }
+
     public function tab(string $tab): static
     {
         $this->tab = $tab;
@@ -203,6 +226,14 @@ abstract class Field
     public function fill(Request $request, Model $model): void
     {
         $model->{$this->column()} = $request->input($this->name);
+    }
+
+    // preload this field's stored value onto a ContentPage record; multi-key
+    // fields (the SEO block) override to load all their keys
+    public function hydrate(Model $record, array $stored): void
+    {
+        $col = $this->column();
+        $record->{$col} = $stored[$col] ?? $this->default;
     }
 
     // runs after save; relation fields sync pivots here (needs the record to exist)

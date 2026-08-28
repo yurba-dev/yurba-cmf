@@ -36,6 +36,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Multilingual frontend (optional)
+    |--------------------------------------------------------------------------
+    | Off by default. Turn it on from Settings -> Panel; configure the languages
+    | (code, url slug, label, default) on the Languages page. Fields marked
+    | ->translatable() then get a per-language tab in the resource form.
+    */
+    'multilang' => [
+        'enabled' => env('YURBA_MULTILANG', false),
+        'default' => 'en',
+        'locales' => [
+            'en' => ['label' => 'English', 'slug' => 'en'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Routing
     |--------------------------------------------------------------------------
     | URL prefix and middleware for the admin panel. The 'yurba.auth' middleware

@@ -357,6 +357,21 @@ abstract class Resource
         return array_values(array_filter($this->fields(), fn (Field $f) => $f->onForm));
     }
 
+    /** @return string[] names of the form fields declared translatable */
+    public function translatableFields(): array
+    {
+        return array_values(array_map(
+            fn (Field $f) => $f->name,
+            array_filter($this->formFields(), fn (Field $f) => $f->translatable)
+        ));
+    }
+
+    // does this resource edit per-language values (multilingual on + a translatable field)
+    public function isMultilingual(): bool
+    {
+        return \Yurba\Cmf\Facades\Yurba::multilangEnabled() && $this->translatableFields() !== [];
+    }
+
     /** @return string[] searchable column names */
     public function searchableColumns(): array
     {

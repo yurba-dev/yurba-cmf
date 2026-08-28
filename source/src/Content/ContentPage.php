@@ -58,8 +58,7 @@ abstract class ContentPage extends Page
 
         $stored = Content::get($this->uriKey());
         foreach ($this->fields() as $field) {
-            $col = $field->column();
-            $record->{$col} = $stored[$col] ?? $field->default;
+            $field->hydrate($record, $stored);
         }
 
         return $record;

@@ -2,6 +2,7 @@
 
 namespace Yurba\Cmf\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Yurba\Cmf\Facades\Yurba;
 use Yurba\Cmf\Fields\Field;
@@ -37,7 +38,7 @@ class ResourceController extends Controller
         $res = $this->resolve($resource);
         abort_unless($res->canCreate(Yurba::user()), 403);
 
-        return view('yurba::resource.form', ['res' => $res, 'record' => $res->newModel()]);
+        return view('yurba::resource.form', ['res' => $res, 'record' => $res->newModel(), 'locale' => null]);
     }
 
     public function store(Request $request, string $resource)
@@ -90,10 +91,16 @@ class ResourceController extends Controller
             }
         }
 
+        $locale = $this->activeLocale($res, $request);
+        if ($locale !== null && $locale !== Yurba::defaultLocale()) {
+            $this->applyLocale($res, $record, $locale);
+        }
+
         return view('yurba::resource.form', [
             'res' => $res,
             'record' => $record,
             'loadedRevision' => $loadedRevision,
+            'locale' => $locale,
         ]);
     }
 
@@ -130,18 +137,34 @@ class ResourceController extends Controller
         abort_unless($res->canUpdate(Yurba::user(), $record), 403);
 
         $fields = $this->activeFields($res, $request);
-        $request->validate($this->rulesFor($fields));
+        $locale = $this->activeLocale($res, $request);
 
-        $this->fill($request, $fields, $record);
-        $record->save();
-        $this->afterSave($request, $res, $record);
+        $rules = $this->rulesFor($fields);
+        if ($locale !== null && $locale !== Yurba::defaultLocale()) {
+            $rules = $this->relaxTranslatable($rules, $fields);
+        }
+        $request->validate($rules);
+
+        if ($locale === null || $locale === Yurba::defaultLocale()) {
+            $this->fill($request, $fields, $record);
+            $record->save();
+            $this->afterSave($request, $res, $record);
+        } else {
+            $this->fillLocalized($request, $fields, $record, $locale);
+        }
+
         if ($record->wasChanged()) {
             $res->recordRevision($record, Yurba::user());
         }
 
         if ($request->input('after') === 'edit') {
+            $params = [$res->uriKey(), $record->getKey()];
+            if ($locale !== null && $locale !== Yurba::defaultLocale()) {
+                $params['locale'] = $locale;
+            }
+
             return redirect()
-                ->route('yurba.resource.edit', [$res->uriKey(), $record->getKey()])
+                ->route('yurba.resource.edit', $params)
                 ->with('yurba_status', __(':name updated.', ['name' => $res->label()]));
         }
 
@@ -285,6 +308,85 @@ class ResourceController extends Controller
                 continue;
             }
             $field->fill($request, $record);
+        }
+    }
+
+    // a non-default locale may be left blank to fall back, so drop required rules
+    protected function relaxTranslatable(array $rules, array $fields): array
+    {
+        foreach ($fields as $field) {
+            if ($field->translatable && isset($rules[$field->name])) {
+                $rules[$field->name] = array_values(array_filter(
+                    $rules[$field->name],
+                    fn ($rule) => ! is_string($rule) || $rule !== 'required'
+                ));
+            }
+        }
+
+        return $rules;
+    }
+
+    // the language being edited, or null when the resource is single-language
+    protected function activeLocale(Resource $res, Request $request): ?string
+    {
+        if (! $res->isMultilingual()) {
+            return null;
+        }
+
+        $requested = (string) ($request->input('_locale') ?: $request->query('locale', ''));
+
+        return isset(Yurba::contentLocales()[$requested]) ? $requested : Yurba::defaultLocale();
+    }
+
+    // load a locale's stored values onto translatable fields for the edit form
+    protected function applyLocale(Resource $res, Model $record, string $locale): void
+    {
+        if (! method_exists($record, 'localeValues')) {
+            return;
+        }
+
+        $values = $record->localeValues($locale);
+        foreach ($res->formFields() as $field) {
+            if (! $field->translatable) {
+                continue;
+            }
+            if (array_key_exists($field->name, $values)) {
+                $record->{$field->name} = $values[$field->name];
+            } elseif (! $field->copyOnCreate) {
+                $record->{$field->name} = null;
+            }
+        }
+    }
+
+    // save into a non-default locale: shared fields hit the base row, translatable
+    // fields are stored per-locale
+    /** @param  Field[]  $fields */
+    protected function fillLocalized(Request $request, array $fields, Model $record, string $locale): void
+    {
+        $translations = [];
+        foreach ($fields as $field) {
+            if ($field->readonly) {
+                continue;
+            }
+            if ($field->translatable) {
+                $translations[$field->name] = $request->input($field->name);
+            } else {
+                $field->fill($request, $record);
+            }
+        }
+
+        $record->save();
+
+        foreach ($fields as $field) {
+            if (! $field->readonly && ! $field->translatable) {
+                $field->afterSave($request, $record);
+            }
+        }
+
+        if (method_exists($record, 'putTranslation')) {
+            foreach ($translations as $name => $value) {
+                $record->putTranslation($locale, $name, $value);
+            }
         }
     }
 

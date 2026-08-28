@@ -61,6 +61,11 @@ class PanelSettings extends SettingsPage
                 ->help(__('Downscale and re-encode uploaded images (to yurba.media.max_width / quality). Thumbnails are generated on demand, not on upload.'))
                 ->helpLink(route('yurba.page.show', 'media-optimization-log'), __('View optimization log'))
                 ->helpLink(route('yurba.page.show', 'media-usage'), __('Image usage & thumbnails')),
+
+            Boolean::make('panel_multilang', __('Enable multilingual'))
+                ->default(config('yurba.multilang.enabled', false))
+                ->help(__('Serve the frontend in several languages. Translatable resource fields gain a per-language tab.'))
+                ->helpLink(route('yurba.page.show', 'languages'), __('Configure languages')),
         ];
     }
 }

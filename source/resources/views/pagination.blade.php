@@ -1,5 +1,5 @@
 @if ($paginator->hasPages())
-    <nav class="y-pager" role="navigation" aria-label="{{ __('Pagination') }}">
+    <nav class="y-pager" role="navigation" aria-label="{{ __('Page navigation') }}">
         <div class="y-pager__pages">
             @if ($paginator->onFirstPage())
                 <span class="y-page is-disabled">←</span>
@@ -31,12 +31,19 @@
 
         {{-- Jump to a specific page (keeps the current filters / sort). --}}
         <form method="GET" action="{{ $paginator->path() }}" class="y-pager-jump">
-            @foreach (request()->except('page') as $key => $value)
-                @if (is_array($value))
-                    @foreach ($value as $v)<input type="hidden" name="{{ $key }}[]" value="{{ $v }}">@endforeach
-                @else
-                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                @endif
+            @php
+                // flatten nested params (filters[status][]=x) so only scalars are echoed
+                $flatten = function ($data, $prefix = '') use (&$flatten) {
+                    $out = [];
+                    foreach ($data as $k => $v) {
+                        $name = $prefix === '' ? $k : $prefix.'['.$k.']';
+                        $out += is_array($v) ? $flatten($v, $name) : [$name => $v];
+                    }
+                    return $out;
+                };
+            @endphp
+            @foreach ($flatten(request()->except('page')) as $name => $value)
+                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
             @endforeach
             <span>{{ __('Page') }}</span>
             <input type="number" name="page" min="1" max="{{ $paginator->lastPage() }}"

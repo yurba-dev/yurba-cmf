@@ -14,7 +14,7 @@ use Yurba\Cmf\Settings\Store;
 class Panel
 {
     // YurbaCMF release, shown in the panel footer
-    public const VERSION = '1.0.2';
+    public const VERSION = '1.0.3';
 
     protected ?Closure $gate = null;
 
@@ -69,6 +69,73 @@ class Panel
     public function locales(): array
     {
         return (array) config('yurba.locales', ['en' => 'English']);
+    }
+
+    // current frontend content locale, set per request by the locale middleware
+    protected ?string $contentLocale = null;
+
+    public function multilangEnabled(): bool
+    {
+        return (bool) Store::get('panel_multilang', config('yurba.multilang.enabled', false))
+            && count($this->contentLocales()) > 1;
+    }
+
+    /** @return array<string, array{label: string, slug: string}> code => [label, slug] */
+    public function contentLocales(): array
+    {
+        $stored = Store::get('panel_locales');
+        $locales = is_array($stored) && $stored ? $stored : (array) config('yurba.multilang.locales', []);
+
+        $out = [];
+        foreach ($locales as $code => $def) {
+            $code = (string) $code;
+            if ($code === '') {
+                continue;
+            }
+            $def = is_array($def) ? $def : ['label' => (string) $def];
+            $out[$code] = [
+                'label' => (string) ($def['label'] ?? $code),
+                'slug' => trim((string) ($def['slug'] ?? $code), '/') ?: $code,
+            ];
+        }
+
+        return $out;
+    }
+
+    public function defaultLocale(): string
+    {
+        $locales = $this->contentLocales();
+        $default = (string) Store::get('panel_default_locale', config('yurba.multilang.default', 'en'));
+
+        return isset($locales[$default]) ? $default : (string) array_key_first($locales);
+    }
+
+    public function contentLocale(): string
+    {
+        return $this->contentLocale ?? $this->defaultLocale();
+    }
+
+    public function setContentLocale(string $code): void
+    {
+        if (isset($this->contentLocales()[$code])) {
+            $this->contentLocale = $code;
+        }
+    }
+
+    public function localeSlug(string $code): string
+    {
+        return $this->contentLocales()[$code]['slug'] ?? $code;
+    }
+
+    public function localeBySlug(string $slug): ?string
+    {
+        foreach ($this->contentLocales() as $code => $def) {
+            if ($def['slug'] === $slug) {
+                return $code;
+            }
+        }
+
+        return null;
     }
 
     /** @return string[] */
@@ -185,6 +252,7 @@ class Panel
             $pages->push(app(Pages\MediaOptimizationLogPage::class));
         }
         $pages->push(app(Pages\MediaUsagePage::class));
+        $pages->push(app(Pages\LanguagesPage::class));
 
         return $pages
             ->filter(fn (Pages\Page $p) => $p->canView($user))
