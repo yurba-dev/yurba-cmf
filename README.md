@@ -12,6 +12,7 @@ A lightweight, dependency-free auto-CRUD admin panel and content framework for L
 - SEO meta fields (polymorphic) + public XML sitemap (single or multi-file index)
 - URL redirect manager with global middleware
 - Per-resource, per-action authorization (Laravel policies) + soft-delete trash
+- Translatable content: per-locale model fields (`->translatable()`) in a translations table
 - Translatable panel interface (English built in, Russian & Ukrainian bundled)
 - Built-in dashboard, settings pages, and generator commands
 
@@ -26,7 +27,7 @@ A lightweight, dependency-free auto-CRUD admin panel and content framework for L
 ```bash
 composer require yurba/cmf
 php artisan yurba:install   # publishes config + assets, creates app/Admin
-php artisan migrate         # media, revisions, seo, redirects, content, optimization-log tables
+php artisan migrate         # media, revisions, seo, redirects, content, translations, optimization-log tables
 ```
 
 Gate who may enter the panel (any truthy check) in a service provider:
@@ -66,5 +67,24 @@ class PostResource extends Resource
 ```
 
 Register it in `config/yurba.php` under `resources` (or scaffold with `php artisan yurba:resource Post --from-schema --register`).
+
+## Translatable content
+
+Add the `HasTranslations` trait to a model and mark any field `->translatable()`. The form shows a language bar and stores per-locale values in `yurba_translations` (the base row keeps the default locale); read the current-locale value with `$model->tr('field')`, which falls back to the base. Enable languages and pick the default in `config/yurba.php` → `multilang`.
+
+```php
+use Yurba\Cmf\Translations\HasTranslations;
+
+class Post extends Model
+{
+    use HasTranslations;
+}
+
+// in the resource
+Text::make('title')->translatable();
+
+// on the frontend
+$post->tr('title');
+```
 
 See the [documentation](https://yurba-dev.github.io/yurba-cmf/) for the full field reference, filters, actions, revisions, SEO, media, authorization and configuration.

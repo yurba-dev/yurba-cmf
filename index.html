@@ -49,6 +49,7 @@
             <a href="#content">Content pages</a>
             <a href="#authorization">Authorization</a>
             <a href="#localization">Localization</a>
+            <a href="#translations">Content translation</a>
             <a href="#theming">Theming</a>
         </div>
         <div class="sidebar-group">
@@ -123,6 +124,11 @@
                         <div class="feature-title">Localization</div>
                         <div class="feature-desc">Translatable panel interface — English built in, Russian and Ukrainian bundled.</div>
                     </div>
+                    <div class="feature">
+                        <span class="material-symbols-rounded">language</span>
+                        <div class="feature-title">Content translation</div>
+                        <div class="feature-desc">Per-locale model fields via -&gt;translatable(), stored in a translations table.</div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -141,7 +147,7 @@
                     <div class="code-block">
                         <pre><code class="language-bash">composer require yurba/cmf
 php artisan yurba:install   # publishes config + assets, creates app/Admin
-php artisan migrate         # media, revisions, seo, redirects, content, optimization-log tables</code></pre>
+php artisan migrate         # media, revisions, seo, redirects, content, translations, optimization-log tables</code></pre>
                     </div>
                     <p class="note">The service provider is auto-discovered. The panel lives at <code>/admin</code> — change the prefix in <code>config/yurba.php</code>.</p>
                 </div>
@@ -1269,6 +1275,60 @@ content('home', 'hero_title', 'Welcome');</code></pre>
                     <pre><code class="language-bash">php artisan vendor:publish --tag=yurba-lang   # copies lang/{ru,uk}.json into your app</code></pre>
                 </div>
                 <p class="note">Add a language by dropping a <code>lang/{code}.json</code> in your app and listing its <code>code =&gt; label</code> under <code>locales</code>. Any key you leave out falls back to the English source string.</p>
+            </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <section id="translations">
+            <div class="doc-header">
+                <h2 class="doc-component-name">Content translation</h2>
+                <p class="doc-component-desc">Separate from the panel interface, your content can be translated per locale. Add a trait to the model and mark fields translatable — the form gains a language bar and stores per-locale values in <code>yurba_translations</code>, with the base row keeping the default locale.</p>
+            </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">Make fields translatable</div>
+                <p>Add the <code>HasTranslations</code> trait to the model and call <code>-&gt;translatable()</code> on any field. Fields you don't mark stay shared across all locales.</p>
+                <div class="gap-stack">
+                    <div class="code-block">
+                        <pre><code class="language-php">use Yurba\Cmf\Translations\HasTranslations;
+
+class Post extends Model
+{
+    use HasTranslations;
+}</code></pre>
+                    </div>
+                    <div class="code-block">
+                        <pre><code class="language-php">// in the resource
+Text::make('title')->translatable();
+Editor::make('body')->translatable();</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">Read a value</div>
+                <p>Call <code>tr()</code> for the current request locale; it falls back to the base row when a translation is missing.</p>
+                <div class="code-block">
+                    <pre><code class="language-php">{{ $post-&gt;tr('title') }}</code></pre>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">Enable languages</div>
+                <p>List the content locales and the default under <code>multilang</code> in <code>config/yurba.php</code> (or toggle them in <strong>Settings → Panel</strong>). Each locale carries a <code>label</code> and a URL <code>slug</code>.</p>
+                <div class="code-block">
+                    <pre><code class="language-php">// config/yurba.php
+'multilang' => [
+    'enabled' => true,
+    'default' => 'en',
+    'locales' => [
+        'en' => ['label' => 'English', 'slug' => 'en'],
+        'uk' => ['label' => 'Українська', 'slug' => 'uk'],
+    ],
+],</code></pre>
+                </div>
+                <p class="note">This is your frontend content, independent of the panel-interface language above. Content pages are edited per locale the same way.</p>
             </div>
         </section>
 
