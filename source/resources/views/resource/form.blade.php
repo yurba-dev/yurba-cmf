@@ -87,8 +87,8 @@
 
         <div class="y-form__actions">
             @if($editing)
-                <button type="submit" name="after" value="edit" class="y-btn y-btn__primary">{{ __('Save') }}</button>
-                <button type="submit" name="after" value="index" class="y-btn y-btn__ghost">{{ __('Save and exit') }}</button>
+                <button type="submit" name="_after" value="edit" class="y-btn y-btn__primary">{{ __('Save') }}</button>
+                <button type="submit" name="_after" value="index" class="y-btn y-btn__ghost">{{ __('Save and exit') }}</button>
             @else
                 <button type="submit" class="y-btn y-btn__primary">{{ __('Create') }}</button>
             @endif

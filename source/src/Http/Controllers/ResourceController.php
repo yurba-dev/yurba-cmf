@@ -157,7 +157,7 @@ class ResourceController extends Controller
             $res->recordRevision($record, Yurba::user());
         }
 
-        if ($request->input('after') === 'edit') {
+        if ($request->input('_after') === 'edit') {
             $params = [$res->uriKey(), $record->getKey()];
             if ($locale !== null && $locale !== Yurba::defaultLocale()) {
                 $params['locale'] = $locale;
