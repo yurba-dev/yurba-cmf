@@ -182,6 +182,28 @@ php artisan migrate</code></pre>
                 </div>
                 <p class="note">Refresh with the <code>yurba-assets</code> tag, not <code>yurba:install --force</code> - the latter also overwrites your <code>config/yurba.php</code>.</p>
             </div>
+
+            <div class="doc-section">
+                <div class="doc-section-title">Deploy scripts</div>
+                <div class="gap-stack">
+                    <p>The package ships two shell scripts in <code>scripts/</code> that do the steps above on a server. Copy them next to <code>artisan</code>; they work from their own folder, so they can't run from <code>vendor</code>:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">cp vendor/yurba/cmf/scripts/*.sh .</code></pre>
+                    </div>
+                    <table class="api-table">
+                        <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>deploy.sh</code></td><td>Applies the code as it is: <code>composer install --no-dev</code> from <code>composer.lock</code>, package discovery, <code>vendor:publish --tag=yurba-assets --force</code>, <code>migrate --force</code>, <code>optimize</code> and <code>storage:link</code>. Run it after every deploy.</td></tr>
+                            <tr><td><code>update-cmf.sh</code></td><td>Updates <code>yurba/cmf</code> to the newest release your <code>composer.json</code> allows, then runs <code>deploy.sh</code>. It also removes an old local copy in <code>packages/yurba-cmf</code>, left by sites that used a path repository.</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="code-block">
+                        <pre><code class="language-bash">sh update-cmf.sh   # a new YurbaCMF release
+sh deploy.sh       # anything else</code></pre>
+                    </div>
+                    <p class="note">Both use <code>php composer.phar</code> when it sits in the project, <code>composer</code> otherwise, and stop at the first failing step.</p>
+                </div>
+            </div>
         </section>
 
         <hr class="section-divider">

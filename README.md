@@ -40,6 +40,36 @@ Yurba::authorizeUsing(fn ($user) => $user->is_admin);
 
 The panel lives at `/admin` (change the prefix in `config/yurba.php`).
 
+## Updating
+
+```bash
+composer update yurba/cmf
+php artisan vendor:publish --tag=yurba-assets --force
+php artisan migrate
+```
+
+Refresh with the `yurba-assets` tag, not `yurba:install --force`: the latter also overwrites your `config/yurba.php`.
+
+### Deploy scripts
+
+`scripts/` holds two shell scripts that do this on a server. Copy them next to `artisan` (they work from their own folder, so they can't run from `vendor`):
+
+```bash
+cp vendor/yurba/cmf/scripts/*.sh .
+```
+
+| Script | What it does |
+|---|---|
+| `deploy.sh` | Applies the code as it is: `composer install --no-dev` from `composer.lock`, package discovery, `vendor:publish --tag=yurba-assets --force`, `migrate --force`, `optimize` and `storage:link`. Run it after every deploy. |
+| `update-cmf.sh` | Updates `yurba/cmf` to the newest release your `composer.json` allows, then runs `deploy.sh`. It also removes an old local copy in `packages/yurba-cmf`, left by sites that used a path repository. |
+
+```bash
+sh update-cmf.sh   # a new YurbaCMF release
+sh deploy.sh       # anything else
+```
+
+Both use `php composer.phar` when it sits in the project, `composer` otherwise, and stop at the first failing step.
+
 ## Define a resource
 
 ```php
