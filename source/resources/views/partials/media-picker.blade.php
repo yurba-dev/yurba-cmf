@@ -8,7 +8,7 @@
         <div class="y-picker__head">
             <input type="search" class="y-input y-picker__search" placeholder="Search media…" data-picker-search>
             <label class="y-btn y-btn__ghost">
-                <span class="material-symbols-rounded">upload</span> Upload
+                {!! \Yurba\Cmf\Facades\Yurba::icon('upload') !!} Upload
                 <input type="file" accept="image/*,application/pdf" data-picker-upload hidden>
             </label>
             <button type="button" class="y-btn y-btn__ghost y-picker__x" data-picker-close aria-label="Close">

@@ -1916,3 +1916,18 @@ tr.is-dragging {
     text-align: center;
     width: 70px;
 }
+
+/* Status icons */
+
+.y-status-icon,
+.material-symbols-rounded.y-status-icon {
+    font-size: 18px;
+}
+
+.y-status-icon--ok {
+    color: #1a7f37;
+}
+
+.y-status-icon--muted {
+    color: var(--y-muted, #9ca3af);
+}

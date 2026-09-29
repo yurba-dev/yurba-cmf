@@ -20,7 +20,7 @@
             </div>
             <div class="y-media-field__buttons">
                 <button type="button" class="y-btn y-btn__ghost y-btn__xs" data-media-open>
-                    <span class="material-symbols-rounded">perm_media</span> Choose from library
+                    {!! \Yurba\Cmf\Facades\Yurba::icon('perm_media') !!} Choose from library
                 </button>
                 <button type="button" class="y-btn y-btn__ghost y-btn__xs" data-media-clear @if(! $ogImage) hidden @endif>Clear</button>
             </div>

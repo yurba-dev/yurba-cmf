@@ -67,7 +67,7 @@
                         <td title="{{ $r->path }}"><code>{{ \Illuminate\Support\Str::afterLast($r->path, '/') }}</code></td>
                         <td>
                             <span style="display:inline-flex;align-items:center;gap:6px;color:{{ $color }};font-weight:600;text-transform:capitalize">
-                                <span class="material-symbols-rounded" style="font-size:18px">{{ $icon }}</span>{{ $r->status }}
+                                {!! \Yurba\Cmf\Facades\Yurba::icon($icon, 'y-status-icon') !!}{{ $r->status }}
                             </span>
                             @if($r->reason)<div class="y-help" style="margin:2px 0 0">{{ $r->reason }}</div>@endif
                         </td>
@@ -78,9 +78,9 @@
                         <td>{{ $r->width && $r->height ? $r->width.'×'.$r->height : '-' }}</td>
                         <td>
                             @if($r->thumbnailed)
-                                <span class="material-symbols-rounded" title="{{ __('Thumbnail generated') }}" style="color:#1a7f37;font-size:18px">done</span>
+                                <span title="{{ __('Thumbnail generated') }}">{!! \Yurba\Cmf\Facades\Yurba::icon('done', 'y-status-icon y-status-icon--ok') !!}</span>
                             @else
-                                <span class="material-symbols-rounded" title="{{ __('No thumbnail') }}" style="color:var(--y-muted,#9ca3af);font-size:18px">remove</span>
+                                <span title="{{ __('No thumbnail') }}">{!! \Yurba\Cmf\Facades\Yurba::icon('remove', 'y-status-icon y-status-icon--muted') !!}</span>
                             @endif
                         </td>
                         <td><span class="y-help">{{ $r->source }}</span></td>

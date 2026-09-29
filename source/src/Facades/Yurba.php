@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static void authorizeUsing(\Closure $callback)
  * @method static bool authorize(mixed $user)
  * @method static string url(string $path = '')
+ * @method static string icon(string $name, string $class = '')
  *
  * @see \Yurba\Cmf\Panel
  */

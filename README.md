@@ -98,6 +98,26 @@ class PostResource extends Resource
 
 Register it in `config/yurba.php` under `resources` (or scaffold with `php artisan yurba:resource Post --from-schema --register`).
 
+## Icons of your own
+
+Every icon the panel draws can be your own HTML (an inline `<svg>`, an icon font of the site); the ones left out stay Material Symbols:
+
+```php
+// config/yurba.php
+'ui' => [
+    // the panel's icons, by the Material Symbols name they replace
+    'icon_html' => ['edit' => '<svg viewBox="0 0 24 24" width="20" height="20">…</svg>'],
+    // YurbaPV's icons: left, right, close, zoom, zoomOut, rotate, download
+    'viewer_icons' => [],
+],
+'editor' => [
+    // YurbaEditor's icons, by its own keys
+    'icons' => [],
+],
+```
+
+A row action's `icon` and a resource's `icon()` take HTML too, and `Yurba::icon('edit')` draws an icon the same way in your own views.
+
 ## Translatable content
 
 Add the `HasTranslations` trait to a model and mark any field `->translatable()`. The form shows a language bar and stores per-locale values in `yurba_translations` (the base row keeps the default locale); read the current-locale value with `$model->tr('field')`, which falls back to the base. Enable languages and pick the default in `config/yurba.php` → `multilang`.

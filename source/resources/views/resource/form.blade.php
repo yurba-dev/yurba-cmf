@@ -23,7 +23,7 @@
             <div class="y-revisions {{ ($loadedRevision ?? null) ? 'is-loaded' : '' }}">
                 <form method="GET" action="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-revisions__pick">
                     <label for="y-revision-select" class="y-revisions__label">
-                        <span class="material-symbols-rounded" aria-hidden="true">history</span> {{ __('Revision') }}
+                        {!! \Yurba\Cmf\Facades\Yurba::icon('history') !!} {{ __('Revision') }}
                     </label>
                     <select id="y-revision-select" name="revision" class="y-input" onchange="this.form.submit()" @if($uiSelect) data-yurba-select @endif>
                         <option value="">{{ __('Current (latest)') }}</option>
@@ -93,7 +93,7 @@
             <a href="{{ route('yurba.resource.index', $res->uriKey()) }}" class="y-btn y-btn__ghost">{{ __('Cancel') }}</a>
             @if($editing && ($preview = $res->previewUrl($record)))
                 <a href="{{ $preview }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost">
-                    <span class="material-symbols-rounded">visibility</span> {{ __('Preview') }}
+                    {!! \Yurba\Cmf\Facades\Yurba::icon('visibility') !!} {{ __('Preview') }}
                 </a>
             @endif
         </div>

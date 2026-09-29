@@ -11,7 +11,7 @@ use Yurba\Cmf\Settings\Store;
 
 class Panel
 {
-    public const VERSION = '1.0.7';
+    public const VERSION = '1.0.8';
 
     protected ?Closure $gate = null;
 
@@ -45,6 +45,22 @@ class Panel
     public function actionIcons(): bool
     {
         return (bool) Store::get('panel_action_icons', config('yurba.action_icons', false));
+    }
+
+    // A built-in icon: the site's own HTML from ui.icon_html by the Material Symbols name, else the symbol.
+    // A value that is already markup (a row action's own icon) comes back as it is. $class goes on the
+    // symbol, or on a span around the site's HTML.
+    public function icon(string $name, string $class = ''): string
+    {
+        if (str_contains($name, '<')) {
+            return $name;
+        }
+        $own = (array) config('yurba.ui.icon_html', []);
+        if (filled($own[$name] ?? null)) {
+            return $class === '' ? (string) $own[$name] : '<span class="'.e($class).'">'.$own[$name].'</span>';
+        }
+
+        return '<span class="material-symbols-rounded'.($class === '' ? '' : ' '.e($class)).'">'.e($name).'</span>';
     }
 
     public function mediaOptimize(): bool

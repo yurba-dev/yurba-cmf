@@ -631,6 +631,7 @@ use Illuminate\Support\Collection;
 // one button per row, keyed by action name
 public function rowActions(?Model $record = null): array
 {
+    // 'icon' is a Material Symbols name or your own HTML
     return ['duplicate' => ['label' => 'Duplicate', 'icon' => 'content_copy']];
 }
 
@@ -950,6 +951,7 @@ return [
         'styles'  => [],
         'scripts' => [],
         'init'    => null,
+        'icons'   => [], // YurbaEditor's icons, by its keys
     ],
 
     // Progressive UI enhancements (turn any off to fall back to native)
@@ -957,6 +959,8 @@ return [
         'select' => env('YURBA_UI_SELECT', true),
         'viewer' => env('YURBA_UI_VIEWER', true),
         'icons'  => env('YURBA_UI_ICONS', true),
+        'icon_html'    => [], // your own icons in place of the panel's symbols
+        'viewer_icons' => [], // YurbaPV's icons, by its keys
     ],
 ];</code></pre>
                 </div>
@@ -1430,6 +1434,31 @@ Editor::make('body')->translatable();</code></pre>
                     </tbody>
                 </table>
                 <p class="note"><strong>Everything here is optional.</strong> Turn any of them off in <code>config/yurba.php</code> and the panel gracefully falls back - a native <code>&lt;select&gt;</code>, a plain <code>&lt;textarea&gt;</code>, no lightbox, or self-hosted icons - with no other changes needed.</p>
+            </div>
+            <div class="doc-section">
+                <div class="doc-section-title">Icons of your own</div>
+                <p>Any icon the panel draws can be your own HTML, such as an inline <code>&lt;svg&gt;</code> or an icon font of the site. Icons left out stay Material Symbols.</p>
+                <table class="api-table">
+                    <thead>
+                        <tr><th>Where</th><th>What it takes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>ui.icon_html</code></td><td>The panel's own icons, keyed by the Material Symbols name it shows: <code>'edit' =&gt; '&lt;svg …&gt;'</code>. Covers the sidebar, row actions, the media library, the picker and the rest.</td></tr>
+                        <tr><td><code>editor.icons</code></td><td>YurbaEditor's icons, by its own keys (see its docs).</td></tr>
+                        <tr><td><code>ui.viewer_icons</code></td><td>YurbaPV's icons: <code>left</code>, <code>right</code>, <code>close</code>, <code>zoom</code>, <code>zoomOut</code>, <code>rotate</code>, <code>download</code>.</td></tr>
+                        <tr><td><code>icon()</code> of a resource, page or settings page</td><td>HTML already: return any markup.</td></tr>
+                        <tr><td><code>rowActions()</code> <code>icon</code></td><td>A Material Symbols name (which <code>ui.icon_html</code> can still replace) or your own HTML.</td></tr>
+                    </tbody>
+                </table>
+                <div class="code-block">
+                    <pre><code class="language-php">'ui' => [
+    'icon_html' => [
+        'edit'   => '&lt;svg viewBox="0 0 24 24" width="20" height="20"&gt;…&lt;/svg&gt;',
+        'delete' => '&lt;i class="my-icon my-icon-trash"&gt;&lt;/i&gt;',
+    ],
+],</code></pre>
+                </div>
+                <p class="note">In your own views, <code>Yurba::icon('edit')</code> draws an icon the same way.</p>
             </div>
         </section>
 

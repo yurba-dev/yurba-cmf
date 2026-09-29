@@ -9,7 +9,7 @@
             <a href="{{ route('yurba.resource.index', $res->uriKey()) }}" class="y-btn y-btn__ghost">← {{ __('Back') }}</a>
             @if($preview = $res->previewUrl($record))
                 <a href="{{ $preview }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost">
-                    <span class="material-symbols-rounded">visibility</span> {{ __('Preview') }}
+                    {!! \Yurba\Cmf\Facades\Yurba::icon('visibility') !!} {{ __('Preview') }}
                 </a>
             @endif
             @if($res->canUpdate($yurbaUser, $record))

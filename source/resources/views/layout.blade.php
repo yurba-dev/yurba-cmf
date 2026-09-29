@@ -29,7 +29,14 @@
         <style>[data-yurba]{--y-accent:{{ $yurbaAccent }};--y-accent-ink:{{ $yurbaAccent }};--y-accent-soft:color-mix(in srgb, {{ $yurbaAccent }} 12%, #fff);}</style>
     @endif
 </head>
-<body class="y-body">
+{{-- the icons the scripts draw themselves: the panel's own markup, and the site's sets for the editor and the viewer --}}
+@php($yurbaIconData = [
+    'check' => \Yurba\Cmf\Facades\Yurba::icon('check'),
+    'description' => \Yurba\Cmf\Facades\Yurba::icon('description'),
+    'editor' => (object) config('yurba.editor.icons', []),
+    'viewer' => (object) config('yurba.ui.viewer_icons', []),
+])
+<body class="y-body" data-yurba-icons="{{ json_encode($yurbaIconData) }}">
     @php($current = request()->route('resource'))
     <div class="y-backdrop" onclick="document.body.classList.remove('y-nav-open')"></div>
     <div class="y-shell">
@@ -44,14 +51,14 @@
 
             <nav class="y-nav">
                 <a href="{{ route('yurba.dashboard') }}" class="y-nav__link {{ request()->routeIs('yurba.dashboard') ? 'is-active' : '' }}">
-                    <span class="y-nav__icon"><span class="material-symbols-rounded">space_dashboard</span></span> {{ __('Dashboard') }}
+                    <span class="y-nav__icon">{!! \Yurba\Cmf\Facades\Yurba::icon('space_dashboard') !!}</span> {{ __('Dashboard') }}
                 </a>
                 <a href="{{ route('yurba.search') }}" class="y-nav__link {{ request()->routeIs('yurba.search') ? 'is-active' : '' }}">
-                    <span class="y-nav__icon"><span class="material-symbols-rounded">search</span></span> {{ __('Search') }}
+                    <span class="y-nav__icon">{!! \Yurba\Cmf\Facades\Yurba::icon('search') !!}</span> {{ __('Search') }}
                 </a>
                 @if(config('yurba.media.enabled', true))
                     <a href="{{ route('yurba.media') }}" class="y-nav__link {{ request()->routeIs('yurba.media') ? 'is-active' : '' }}">
-                        <span class="y-nav__icon"><span class="material-symbols-rounded">perm_media</span></span> {{ __('Media') }}
+                        <span class="y-nav__icon">{!! \Yurba\Cmf\Facades\Yurba::icon('perm_media') !!}</span> {{ __('Media') }}
                     </a>
                 @endif
 

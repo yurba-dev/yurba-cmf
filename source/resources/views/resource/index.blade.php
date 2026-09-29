@@ -30,7 +30,7 @@
 
             @if($hasFilterUi)
                 <button type="button" class="y-btn y-btn__ghost" data-filter-toggle aria-expanded="false">
-                    <span class="material-symbols-rounded">tune</span> {{ __('Filters') }}
+                    {!! \Yurba\Cmf\Facades\Yurba::icon('tune') !!} {{ __('Filters') }}
                     @if($activeCount)<span class="y-filterbadge">{{ $activeCount }}</span>@endif
                 </button>
             @endif
@@ -122,7 +122,7 @@
                 @forelse($records as $record)
                     <tr class="{{ $res->usesSoftDeletes() && $record->trashed() ? 'is-trashed' : '' }}" @if($reorder) draggable="true" data-id="{{ $record->getKey() }}" @endif>
                         @if($reorder)
-                            <td class="y-col-drag"><span class="y-drag material-symbols-rounded" aria-hidden="true">drag_indicator</span></td>
+                            <td class="y-col-drag">{!! \Yurba\Cmf\Facades\Yurba::icon('drag_indicator', 'y-drag') !!}</td>
                         @endif
                         @if(count($bulk))
                             <td class="y-col-check">
@@ -155,7 +155,7 @@
                                             @csrf
                                             <input type="hidden" name="action" value="{{ $actionKey }}">
                                             <input type="hidden" name="id" value="{{ $record->getKey() }}">
-                                            <button type="submit" class="y-btn y-btn__ghost y-btn__xs {{ ($ic && $actionIcon) ? 'y-btn__icon' : '' }}" @if($ic && $actionIcon) title="{{ $actionLabel }}" aria-label="{{ $actionLabel }}" @endif>@if($ic && $actionIcon)<span class="material-symbols-rounded" aria-hidden="true">{{ $actionIcon }}</span>@else{{ $actionLabel }}@endif</button>
+                                            <button type="submit" class="y-btn y-btn__ghost y-btn__xs {{ ($ic && $actionIcon) ? 'y-btn__icon' : '' }}" @if($ic && $actionIcon) title="{{ $actionLabel }}" aria-label="{{ $actionLabel }}" @endif>@if($ic && $actionIcon){!! \Yurba\Cmf\Facades\Yurba::icon($actionIcon) !!}@else{{ $actionLabel }}@endif</button>
                                         </form>
                                     @endforeach
                                 @endif

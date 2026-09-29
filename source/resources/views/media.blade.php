@@ -15,7 +15,7 @@
                 <input type="file" name="files[]" id="y-media-files" multiple class="y-media-upload__input"
                        accept="image/*,application/pdf">
                 <label for="y-media-files" class="y-btn y-btn__primary">
-                    <span class="material-symbols-rounded">upload</span> {{ __('Upload') }}
+                    {!! \Yurba\Cmf\Facades\Yurba::icon('upload') !!} {{ __('Upload') }}
                 </label>
                 <noscript><button type="submit" class="y-btn y-btn__ghost">{{ __('Upload selected') }}</button></noscript>
             </form>
@@ -32,7 +32,7 @@
                         @if($item->isImage())
                             <img src="{{ $item->thumb_url }}" data-full="{{ $item->url }}" alt="{{ $item->name }}" loading="lazy">
                         @else
-                            <span class="material-symbols-rounded y-media-card__icon">description</span>
+                            {!! \Yurba\Cmf\Facades\Yurba::icon('description', 'y-media-card__icon') !!}
                         @endif
                     </div>
                     <div class="y-media-card__body">
@@ -43,15 +43,15 @@
                     </div>
                     <div class="y-media-card__actions">
                         <button type="button" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" data-copy="{{ $item->url }}" title="{{ __('Copy URL') }}" aria-label="{{ __('Copy URL') }}">
-                            <span class="material-symbols-rounded">link</span>
+                            {!! \Yurba\Cmf\Facades\Yurba::icon('link') !!}
                         </button>
                         <a href="{{ $item->url }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" title="{{ __('Open') }}" aria-label="{{ __('Open') }}">
-                            <span class="material-symbols-rounded">open_in_new</span>
+                            {!! \Yurba\Cmf\Facades\Yurba::icon('open_in_new') !!}
                         </a>
                         <form method="POST" action="{{ route('yurba.media.destroy', $item->id) }}" onsubmit="return confirm(@js(__('Delete this file?')));" class="y-inline">
                             @csrf @method('DELETE')
                             <button type="submit" class="y-btn y-btn__danger y-btn__xs y-btn__icon" title="{{ __('Delete') }}" aria-label="{{ __('Delete') }}">
-                                <span class="material-symbols-rounded">delete</span>
+                                {!! \Yurba\Cmf\Facades\Yurba::icon('delete') !!}
                             </button>
                         </form>
                     </div>

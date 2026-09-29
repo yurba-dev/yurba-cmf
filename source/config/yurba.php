@@ -124,6 +124,8 @@ return [
         'styles' => [],
         'scripts' => [],
         'init' => null,
+        // YurbaEditor's own icons, as HTML by its keys (see its docs); keys left out stay built in
+        'icons' => [],
     ],
 
     'ui' => [
@@ -132,5 +134,10 @@ return [
         'viewer' => env('YURBA_UI_VIEWER', true),
         // Material Symbols Rounded font; disable to self-host or bring your own icons via 'styles' / 'head'
         'icons' => env('YURBA_UI_ICONS', true),
+        // Your own icons in place of the panel's Material Symbols, as HTML by the symbol's name:
+        // 'edit' => '<svg ...>'. Names left out stay symbols.
+        'icon_html' => [],
+        // YurbaPV's own icons, as HTML by its keys: left, right, close, zoom, zoomOut, rotate, download
+        'viewer_icons' => [],
     ],
 ];

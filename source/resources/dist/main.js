@@ -1,4 +1,14 @@
 (function () {
+    // Markup from the panel's config, set by the layout
+    var icons = {}
+    try { icons = JSON.parse(document.body.dataset.yurbaIcons || '{}') } catch (e) {}
+
+    function iconNode(html) {
+        var box = document.createElement('span')
+        box.innerHTML = html || ''
+        return box.childElementCount == 1 ? box.firstElementChild : box
+    }
+
     function ready(fn) {
         if (document.readyState == 'loading') document.addEventListener('DOMContentLoaded', fn)
         else fn()
@@ -185,11 +195,14 @@
             btn.addEventListener('click', function () {
                 var url = btn.getAttribute('data-copy')
                 if (navigator.clipboard) navigator.clipboard.writeText(url)
-                var icon = btn.querySelector('.material-symbols-rounded')
-                if (!icon) return
-                var prev = icon.textContent
-                icon.textContent = 'check'
-                setTimeout(function () { icon.textContent = prev }, 1200)
+                if (!icons.check || btn.dataset.copied) return
+                var prev = btn.innerHTML
+                btn.dataset.copied = '1'
+                btn.innerHTML = icons.check
+                setTimeout(function () {
+                    btn.innerHTML = prev
+                    delete btn.dataset.copied
+                }, 1200)
             })
         })
     }
@@ -282,12 +295,7 @@
 
         // urls come from stored file names, so they are set as properties, never parsed as html
         function previewNode(isImage, url, lazy) {
-            if (!isImage) {
-                var icon = document.createElement('span')
-                icon.className = 'material-symbols-rounded'
-                icon.textContent = 'description'
-                return icon
-            }
+            if (!isImage) return iconNode(icons.description)
             var img = document.createElement('img')
             img.alt = ''
             if (lazy) img.loading = 'lazy'
@@ -470,6 +478,7 @@
                 if (el.dataset.uploadCsrf) opts.uploadHeaders = { 'X-CSRF-TOKEN': el.dataset.uploadCsrf }
                 if (el.dataset.maxImageKb) opts.maxImageKb = parseInt(el.dataset.maxImageKb, 10)
             }
+            if (icons.editor && Object.keys(icons.editor).length) opts.icons = icons.editor
             YurbaEditor.create(opts)
         })
     }
@@ -494,9 +503,9 @@
     }
 
     function initViewer() {
-        if (!customElements.get('yurba-pv')) return
-        var viewer = document.createElement('yurba-pv')
-        document.body.appendChild(viewer)
+        var Viewer = customElements.get('yurba-pv')
+        if (!Viewer) return
+        var viewer = Viewer.create({ icons: icons.viewer || {} })
         var id = 1
         function bindImg(img) {
             if (!img || img.dataset.ypv) return
