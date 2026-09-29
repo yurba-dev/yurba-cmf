@@ -8,15 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
-// rich-text field backed by YurbaEditor. stores allowlist-sanitized html in a
-// text column, stripped text on the index. security lives in fill(), not the
-// browser: it re-sanitizes every POST so a forged request can't smuggle script.
+// security lives in fill(), not the browser: every POST is re-sanitized so a forged request can't smuggle script
 class Editor extends Field
 {
     // bump on yurba-editor update
-    public const ASSET_VERSION = '1.0.0';
+    public const ASSET_VERSION = '1.0.2';
 
-    // tags kept when sanitizing; everything else is dropped to plain text
     public const ALLOWED_TAGS = [
         'p', 'div', 'br', 'hr', 'strong', 'b', 'em', 'i', 'u', 's', 'sub', 'sup',
         'a', 'span', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4',
@@ -24,7 +21,6 @@ class Editor extends Field
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
     ];
 
-    // non-style attributes kept per tag (style handled via STYLE_PROPS)
     private const ATTRS = [
         'a' => ['href', 'title', 'target'],
         'img' => ['src', 'alt', 'title', 'width', 'height'],
@@ -33,7 +29,6 @@ class Editor extends Field
         'th' => ['colspan', 'rowspan'],
     ];
 
-    // css properties kept in a surviving style="" attribute
     private const STYLE_PROPS = [
         'p' => ['text-align', 'margin-left'],
         'div' => ['text-align', 'margin-left'],
@@ -45,14 +40,13 @@ class Editor extends Field
         'table' => ['width'],
     ];
 
-    // only these hosts may live in an <iframe src>
     private const EMBED_HOSTS = [
         'youtube.com', 'www.youtube.com',
         'youtube-nocookie.com', 'www.youtube-nocookie.com',
         'player.vimeo.com',
     ];
 
-    // toolbar layout; "|" is a separator
+    // "|" is a separator
     public array $toolbar = [
         'undo', 'redo', '|',
         'heading', '|',
@@ -74,7 +68,7 @@ class Editor extends Field
     public function __construct(string $name, ?string $label = null)
     {
         parent::__construct($name, $label);
-        $this->onIndex = false; // rich text stays off the table by default
+        $this->onIndex = false;
     }
 
     public function uploads(bool $enabled = true): static
@@ -125,8 +119,6 @@ class Editor extends Field
         return true;
     }
 
-    // allowlist-sanitize editor html: drop tags outside ALLOWED_TAGS (keep inner
-    // text), strip handlers/unknown attrs, filter style="", refuse unsafe/off-host urls
     public function sanitize(?string $html): string
     {
         $html = trim((string) $html);
@@ -134,9 +126,7 @@ class Editor extends Field
             return '';
         }
 
-        // drop these tags *with their contents* first - strip_tags keeps the inner
-        // text, so a lone "<script>alert(1)" would otherwise survive. (iframe is not
-        // here: valid embeds are kept and validated below.)
+        // drop these with their contents: strip_tags keeps inner text, so a lone "<script>alert(1)" would survive (iframes are validated below)
         $html = preg_replace('#<(script|style|object|embed|noscript|template)\b[^>]*>.*?</\1\s*>#is', '', (string) $html);
 
         $allowed = '<'.implode('><', self::ALLOWED_TAGS).'>';
@@ -144,8 +134,7 @@ class Editor extends Field
 
         $dom = new DOMDocument();
         $prev = libxml_use_internal_errors(true);
-        // the xml PI pins utf-8 so multibyte text survives; libxml wraps the
-        // fragment in <html><body>, read back out below.
+        // the xml PI pins utf-8 so multibyte text survives; libxml wraps the fragment in <html><body>
         $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html, LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
         libxml_use_internal_errors($prev);
@@ -163,8 +152,7 @@ class Editor extends Field
         }
         $out = trim($out);
 
-        // blank unless there's real text or an embed (an empty editor leaves a
-        // lone <br> or blank paragraphs that shouldn't count as content)
+        // an empty editor leaves a lone <br> or blank paragraphs that must not count as content
         $hasText = trim(strip_tags($out)) != '';
         $hasEmbed = (bool) preg_match('#<(img|iframe|hr|table)\b#i', $out);
 
@@ -177,8 +165,7 @@ class Editor extends Field
         $attrsAllowed = self::ATTRS[$tag] ?? [];
         $styleAllowed = self::STYLE_PROPS[$tag] ?? [];
 
-        // snapshot the attributes before mutating - removing during live
-        // iteration of DOMNamedNodeMap skips entries
+        // snapshot first: removing attributes during live DOMNamedNodeMap iteration skips entries
         $attributes = [];
         foreach ($el->attributes as $attr) {
             $attributes[] = $attr;
@@ -212,7 +199,6 @@ class Editor extends Field
             }
         }
 
-        // media with an unusable/unsafe source is removed outright
         if ($tag == 'img' && ! $this->safeUrl((string) $el->getAttribute('src'))) {
             $el->parentNode?->removeChild($el);
 
@@ -224,8 +210,7 @@ class Editor extends Field
             return;
         }
 
-        // links: honor an explicit same-tab choice, otherwise default to a safe new
-        // tab (target + rel to keep the opener from the target)
+        // default to a new tab with rel so the target can't reach the opener; an explicit same-tab choice is honored
         if ($tag == 'a' && $el->hasAttribute('href')) {
             if (strtolower($el->getAttribute('target')) == '_self') {
                 $el->setAttribute('target', '_self');
@@ -284,8 +269,7 @@ class Editor extends Field
             return false;
         }
 
-        // explicit safe schemes, root-relative, fragment - plus bare relative
-        // paths with no scheme. blocks data:/vbscript:/etc.
+        // safe schemes, root-relative, fragment or scheme-less relative paths; blocks data:, vbscript: etc.
         return (bool) preg_match('#^(https?:|mailto:|tel:|/|\#)#i', $url)
             || ! str_contains($url, ':');
     }

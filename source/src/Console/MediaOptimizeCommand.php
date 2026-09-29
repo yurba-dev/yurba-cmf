@@ -8,7 +8,6 @@ use Yurba\Cmf\Media\ImageOptimizer;
 use Yurba\Cmf\Media\Media;
 use Yurba\Cmf\Media\MediaOptimization;
 
-// downscale oversized media originals (per config yurba.media.*). safe to re-run.
 class MediaOptimizeCommand extends Command
 {
     protected $signature = 'yurba:media-optimize
@@ -55,6 +54,7 @@ class MediaOptimizeCommand extends Command
                         [$newData, $w, $h] = $opt;
                         if ($tooWide || strlen($newData) < strlen($data)) {
                             Storage::disk($m->disk)->put($m->path, $newData);
+                            Media::forgetThumbSkip($m->path, $m->disk);
                             $data = $newData;
                             $m->width = $w;
                             $m->height = $h;

@@ -9,11 +9,8 @@ use Yurba\Cmf\Resources\Resource;
 use Yurba\Cmf\Settings\PanelSettings;
 use Yurba\Cmf\Settings\Store;
 
-// registry of the registered CRUD resources; decides who may enter the admin.
-// bound as a singleton ("yurba.cmf").
 class Panel
 {
-    // YurbaCMF release, shown in the panel footer
     public const VERSION = '1.0.6';
 
     protected ?Closure $gate = null;
@@ -55,7 +52,6 @@ class Panel
         return (bool) Store::get('panel_media_optimize', config('yurba.media.optimize', true));
     }
 
-    // admin-selected UI language; falls back to the default when the stored value is unknown.
     public function locale(): string
     {
         $default = (string) config('yurba.locale', 'en');
@@ -65,13 +61,11 @@ class Panel
         return in_array($locale, $available, true) ? $locale : $default;
     }
 
-    /** @return array<string, string> available UI locales: code => label */
     public function locales(): array
     {
         return (array) config('yurba.locales', ['en' => 'English']);
     }
 
-    // current frontend content locale, set per request by the locale middleware
     protected ?string $contentLocale = null;
 
     public function multilangEnabled(): bool
@@ -80,7 +74,6 @@ class Panel
             && count($this->contentLocales()) > 1;
     }
 
-    /** @return array<string, array{label: string, slug: string}> code => [label, slug] */
     public function contentLocales(): array
     {
         $stored = Store::get('panel_locales');
@@ -89,7 +82,7 @@ class Panel
         $out = [];
         foreach ($locales as $code => $def) {
             $code = (string) $code;
-            if ($code === '') {
+            if ($code == '') {
                 continue;
             }
             $def = is_array($def) ? $def : ['label' => (string) $def];
@@ -130,7 +123,7 @@ class Panel
     public function localeBySlug(string $slug): ?string
     {
         foreach ($this->contentLocales() as $code => $def) {
-            if ($def['slug'] === $slug) {
+            if ($def['slug'] == $slug) {
                 return $code;
             }
         }
@@ -138,13 +131,11 @@ class Panel
         return null;
     }
 
-    /** @return string[] */
     public function styles(): array
     {
         return (array) config('yurba.styles', []);
     }
 
-    /** @return string[] */
     public function scripts(): array
     {
         return (array) config('yurba.scripts', []);
@@ -170,14 +161,12 @@ class Panel
         return (string) config('yurba.guard', 'web');
     }
 
-    /** @return Collection<int, Resource> */
     public function resources(): Collection
     {
         $resources = collect(config('yurba.resources', []))
             ->filter(fn ($class) => class_exists($class))
             ->map(fn ($class) => app($class));
 
-        // built-in redirects manager; opt out via config
         if (config('yurba.redirects.enabled', true)) {
             $resources->push(app(RedirectResource::class));
         }
@@ -185,7 +174,6 @@ class Panel
         return $resources->values();
     }
 
-    /** @return Collection<int, Resource> */
     public function authorizedResources(): Collection
     {
         $user = $this->user();
@@ -202,17 +190,15 @@ class Panel
 
     public function find(string $uriKey): ?Resource
     {
-        return $this->resources()->first(fn (Resource $r) => $r->uriKey() === $uriKey);
+        return $this->resources()->first(fn (Resource $r) => $r->uriKey() == $uriKey);
     }
 
-    /** @return Collection<int, Settings\SettingsPage> */
     public function settingsPages(): Collection
     {
         $pages = collect(config('yurba.settings', []))
             ->filter(fn ($class) => class_exists($class))
             ->map(fn ($class) => app($class));
 
-        // built-in panel settings; opt out via config
         if (config('yurba.builtin_settings', true)) {
             $pages->prepend(app(PanelSettings::class));
         }
@@ -222,16 +208,14 @@ class Panel
 
     public function findSettings(string $uriKey): ?Settings\SettingsPage
     {
-        return $this->settingsPages()->first(fn ($p) => $p->uriKey() === $uriKey);
+        return $this->settingsPages()->first(fn ($p) => $p->uriKey() == $uriKey);
     }
 
-    /** @return Collection<int, Pages\Page> custom screens the user may see */
     public function pages(): Collection
     {
         $user = $this->user();
 
-        // each entry is a class-string, a [class, ...ctorArgs] tuple (keeps the
-        // config serializable for config:cache), or a ready Page instance
+        // a class-string, a [class, ...ctorArgs] tuple (keeps config:cache serializable), or a Page instance
         $pages = collect(config('yurba.pages', []))
             ->map(function ($page) {
                 if ($page instanceof Pages\Page) {
@@ -247,7 +231,6 @@ class Panel
             })
             ->filter(fn ($p) => $p instanceof Pages\Page);
 
-        // built-in media screens (hidden from nav, linked from settings)
         if (config('yurba.media.log', true)) {
             $pages->push(app(Pages\MediaOptimizationLogPage::class));
         }
@@ -261,7 +244,7 @@ class Panel
 
     public function findPage(string $uriKey): ?Pages\Page
     {
-        return $this->pages()->first(fn ($p) => $p->uriKey() === $uriKey);
+        return $this->pages()->first(fn ($p) => $p->uriKey() == $uriKey);
     }
 
     public function authorizeUsing(Closure $callback): void
@@ -269,7 +252,6 @@ class Panel
         $this->gate = $callback;
     }
 
-    // defaults to a truthy is_admin unless a custom gate is set
     public function authorize(mixed $user): bool
     {
         if (! $user) {
@@ -281,6 +263,14 @@ class Panel
         }
 
         return (bool) ($user->is_admin ?? false);
+    }
+
+    // the asset's mtime, so a refreshed build reaches browsers even if nobody bumps the constant
+    public static function assetVersion(string $file, string $fallback = self::VERSION): string
+    {
+        $mtime = @filemtime(public_path('vendor/yurba/'.$file));
+
+        return $mtime ? $fallback.'.'.$mtime : $fallback;
     }
 
     public function url(string $path = ''): string

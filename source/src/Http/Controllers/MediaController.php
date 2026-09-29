@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Yurba\Cmf\Media\ImageOptimizer;
 use Yurba\Cmf\Media\Media;
 use Yurba\Cmf\Media\MediaOptimization;
+use Yurba\Cmf\Support\Upload;
 
 class MediaController extends Controller
 {
@@ -22,15 +23,15 @@ class MediaController extends Controller
 
         $search = trim((string) $request->query('q', ''));
         $media = Media::query()
-            ->when($search !== '', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+            ->when($search != '', fn ($q) => $q->where('name', 'like', "%{$search}%"))
             ->latest()
+            ->latest('id')
             ->paginate((int) config('yurba.media.per_page', 24))
             ->withQueryString();
 
         return view('yurba::media', compact('media', 'search'));
     }
 
-    // json feed for the media picker modal
     public function list(Request $request)
     {
         $this->guard();
@@ -38,8 +39,9 @@ class MediaController extends Controller
         $search = trim((string) $request->query('q', ''));
         $perPage = (int) config('yurba.media.picker_per_page', 36);
         $paginator = Media::query()
-            ->when($search !== '', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+            ->when($search != '', fn ($q) => $q->where('name', 'like', "%{$search}%"))
             ->latest()
+            ->latest('id')
             ->paginate($perPage);
 
         return response()->json([
@@ -49,7 +51,6 @@ class MediaController extends Controller
         ]);
     }
 
-    /** @return array<string, mixed> */
     protected function present(Media $m): array
     {
         return ['id' => $m->id, 'name' => $m->name, 'url' => $m->url, 'thumb' => $m->thumb_url, 'is_image' => $m->isImage()];
@@ -66,6 +67,7 @@ class MediaController extends Controller
             'files' => ['required', 'array'],
             'files.*' => ['file', 'mimes:'.$mimes, 'max:'.$maxKb],
         ]);
+        $allowed = array_values(array_filter(array_map(fn ($m) => strtolower(trim($m)), explode(',', $mimes))));
 
         $disk = (string) config('yurba.media.disk', 'public');
         $dir = trim((string) config('yurba.media.dir', 'media'), '/');
@@ -77,7 +79,7 @@ class MediaController extends Controller
         foreach ((array) $request->file('files', []) as $file) {
             $data = $origData = (string) file_get_contents($file->getRealPath());
             $origSize = strlen($origData);
-            $mime = (string) $file->getClientMimeType();
+            $mime = (string) ($file->getMimeType() ?: $file->getClientMimeType());
             $isImage = str_starts_with($mime, 'image/');
             $width = $height = null;
             $optimized = false;
@@ -89,11 +91,11 @@ class MediaController extends Controller
                 [$width, $height] = $info;
             }
 
-            $ext = strtolower($file->getClientOriginalExtension() ?: (string) $file->guessExtension() ?: 'bin');
+            // named by the sniffed type: a client ".html" would be served as a page on this origin
+            $ext = Upload::safeExtension($file, $allowed) ?? 'bin';
             $path = $dir.'/'.date('Y/m').'/'.Str::random(40).'.'.$ext;
             Storage::disk($disk)->put($path, $data);
 
-            // thumbnails are generated on demand (Media::thumb), not at upload
             $created[] = Media::create([
                 'disk' => $disk,
                 'path' => $path,
@@ -140,9 +142,8 @@ class MediaController extends Controller
         $storage = Storage::disk($media->disk);
         $storage->delete($media->path);
 
-        // remove any cached on-demand thumbnails ({dir}-thumbs/{width}/{rel})
         $dir = trim((string) config('yurba.media.dir', 'media'), '/');
-        if ($dir !== '' && str_starts_with($media->path, $dir.'/')) {
+        if ($dir != '' && str_starts_with($media->path, $dir.'/')) {
             $rel = Str::after($media->path, $dir.'/');
             foreach ($storage->directories($dir.'-thumbs') as $widthDir) {
                 $storage->delete($widthDir.'/'.$rel);

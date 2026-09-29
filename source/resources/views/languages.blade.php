@@ -23,7 +23,7 @@
                         <td><input type="text" name="locales[{{ $i }}][code]" value="{{ $code }}" class="y-input" maxlength="5" placeholder="uk"></td>
                         <td><input type="text" name="locales[{{ $i }}][slug]" value="{{ $def['slug'] }}" class="y-input" placeholder="uk"></td>
                         <td><input type="text" name="locales[{{ $i }}][label]" value="{{ $def['label'] }}" class="y-input" placeholder="Українська"></td>
-                        <td class="y-langs__default"><input type="radio" name="default" value="{{ $code }}" @checked($code === $default)></td>
+                        <td class="y-langs__default"><input type="radio" name="default" value="{{ $code }}" @checked($code == $default)></td>
                         <td><button type="button" class="y-btn y-btn__ghost y-btn__xs" data-lang-remove>&times;</button></td>
                     </tr>
                     @php $i++; @endphp
@@ -60,8 +60,7 @@
         rows.insertAdjacentHTML('beforeend', html)
     }
 
-    // the code field feeds the row's default radio, so a new language is selectable
-    // as default without a save-and-reload first
+    // the code field feeds the row's default radio, so a new language can be default without a save-and-reload
     function syncDefaultValue (e) {
         let cell = e.target.closest('.y-langs__row')
         if (!cell || e.target.name.indexOf('[code]') < 0) {

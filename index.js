@@ -1,6 +1,5 @@
 hljs.highlightAll()
 
-// highlight the sidebar link for the section currently in view
 const links = document.querySelectorAll('.sidebar a')
 const spy = new IntersectionObserver(entries => {
     entries.forEach(entry => {

@@ -6,7 +6,6 @@ use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputOption;
 
-// scaffolds a settings page in App\Admin\Settings; --register appends it to config
 class SettingsMakeCommand extends GeneratorCommand
 {
     protected $name = 'yurba:settings';
@@ -25,7 +24,6 @@ class SettingsMakeCommand extends GeneratorCommand
         return $rootNamespace.'\Admin\Settings';
     }
 
-    // force the class name to end in "Settings" (yurba:settings Seo => SeoSettings)
     protected function getNameInput(): string
     {
         $name = Str::studly(Str::replaceLast('Settings', '', trim((string) $this->argument('name'))));
@@ -44,12 +42,11 @@ class SettingsMakeCommand extends GeneratorCommand
         return $result;
     }
 
-    // add the page (and its use import) to the settings array in config
     protected function registerInConfig(string $fqn): void
     {
         $path = $this->laravel->configPath('yurba.php');
         if (! $this->files->exists($path)) {
-            $this->components->warn('config/yurba.php not found — add '.class_basename($fqn).'::class to the settings array yourself.');
+            $this->components->warn('config/yurba.php not found, add '.class_basename($fqn).'::class to the settings array yourself.');
 
             return;
         }
@@ -73,7 +70,6 @@ class SettingsMakeCommand extends GeneratorCommand
         $this->components->info($short.' registered in config/yurba.php.');
     }
 
-    // insert a use line alphabetically among the App\Admin\Settings\* imports
     protected function insertUse(array $lines, string $use): array
     {
         $matches = [];
@@ -102,7 +98,6 @@ class SettingsMakeCommand extends GeneratorCommand
         return $lines;
     }
 
-    // insert an entry at the top of a named config array
     protected function insertIntoArray(array $lines, string $key, string $entry): array
     {
         foreach ($lines as $i => $line) {
@@ -113,7 +108,7 @@ class SettingsMakeCommand extends GeneratorCommand
             }
         }
 
-        $this->components->warn("Could not find the {$key} array — add {$entry} manually.");
+        $this->components->warn("Could not find the {$key} array, add {$entry} manually.");
 
         return $lines;
     }

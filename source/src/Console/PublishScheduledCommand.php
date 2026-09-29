@@ -4,10 +4,7 @@ namespace Yurba\Cmf\Console;
 
 use Illuminate\Console\Command;
 use Yurba\Cmf\Facades\Yurba;
-use Yurba\Cmf\Resources\Resource;
 
-// promote scheduled records whose publish time has arrived, per each resource's
-// publishing() declaration. run every minute from the scheduler.
 class PublishScheduledCommand extends Command
 {
     protected $name = 'yurba:publish-scheduled';
@@ -19,7 +16,6 @@ class PublishScheduledCommand extends Command
         $total = 0;
 
         foreach (Yurba::resources() as $res) {
-            /** @var Resource $res */
             $p = $res->publishing();
             if (! $p || empty($p['status']) || empty($p['date'])) {
                 continue;
@@ -37,7 +33,7 @@ class PublishScheduledCommand extends Command
             }
         }
 
-        if ($total === 0) {
+        if ($total == 0) {
             $this->components->info('Nothing due to publish.');
         }
 

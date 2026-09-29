@@ -1,14 +1,14 @@
 @php($type = $field->indexComponent())
-@if($type === 'boolean')
+@if($type == 'boolean')
     @if($field->value($record))
         <span class="y-pill y-pill--ok">Yes</span>
     @else
         <span class="y-pill y-pill--muted">No</span>
     @endif
-@elseif($type === 'badge')
+@elseif($type == 'badge')
     @php($text = $field->indexValue($record))
-    @if(filled($text))<span class="y-pill">{{ $text }}</span>@else<span class="y-muted">—</span>@endif
-@elseif($type === 'slug')
+    @if(filled($text))<span class="y-pill">{{ $text }}</span>@else<span class="y-muted">-</span>@endif
+@elseif($type == 'slug')
     @php($url = $field->permalinkFor($record))
     @php($text = $field->indexValue($record))
     @if($url)
@@ -16,24 +16,25 @@
     @elseif(filled($text))
         {{ $text }}
     @else
-        <span class="y-muted">—</span>
+        <span class="y-muted">-</span>
     @endif
-@elseif($type === 'image')
+@elseif($type == 'image')
     @php($src = $field->value($record))
     @if($src)
-        {{-- data-full is the original: the panel viewer (main.js bindImg) reads
-             it for the lightbox, otherwise it would open the thumbnail src. --}}
-        <a href="{{ $src }}" target="_blank" rel="noopener">
+        {{-- the value is free text for media fields, so a script url must not become a clickable link --}}
+        @php($linkable = ! preg_match('#^(javascript|vbscript|data):#i', preg_replace('/[\x00-\x20]+/', '', (string) $src)))
+        {{-- data-full is the original for the viewer; src is only the thumbnail --}}
+        <a @if($linkable) href="{{ $src }}" @endif target="_blank" rel="noopener">
             <img src="{{ $field->thumb !== null ? \Yurba\Cmf\Media\Media::thumb($src, $field->thumb) : $src }}" data-full="{{ $src }}" alt="" class="y-thumb"
-                 onerror="this.onerror=null;this.src='{{ $src }}'">
+                 onerror="this.onerror=null;this.src=this.dataset.full">
         </a>
         @if(config('yurba.ui.viewer', true))
             @include('yurba::partials.ui-viewer')
         @endif
     @else
-        <span class="y-muted">—</span>
+        <span class="y-muted">-</span>
     @endif
 @else
     @php($text = $field->indexValue($record))
-    {{ \Illuminate\Support\Str::limit($text, 70) ?: '' }}@if(!filled($text))<span class="y-muted">—</span>@endif
+    {{ \Illuminate\Support\Str::limit($text, 70) ?: '' }}@if(!filled($text))<span class="y-muted">-</span>@endif
 @endif

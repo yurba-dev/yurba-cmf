@@ -1,12 +1,11 @@
 @php
-    // group fields by tab (preserving order); blank tab = the implicit first tab
     $fields = $page->fields();
     $tabs = [];
     foreach ($fields as $f) {
         $tabs[$f->tab ?? ''][] = $f;
     }
     $tabNames = array_keys($tabs);
-    $hasTabs = count($tabNames) > 1 || (count($tabNames) === 1 && $tabNames[0] !== '');
+    $hasTabs = count($tabNames) > 1 || (count($tabNames) == 1 && $tabNames[0] != '');
 @endphp
 
 <form method="POST"
@@ -17,13 +16,13 @@
     @if($hasTabs)
         <div class="y-tabs" role="tablist">
             @foreach($tabNames as $i => $name)
-                <button type="button" class="y-tabs__tab {{ $i === 0 ? 'is-active' : '' }}" data-tab-target="y-tab-{{ $i }}">
-                    {{ $name !== '' ? $name : 'General' }}
+                <button type="button" class="y-tabs__tab {{ $i == 0 ? 'is-active' : '' }}" data-tab-target="y-tab-{{ $i }}">
+                    {{ $name != '' ? $name : __('General') }}
                 </button>
             @endforeach
         </div>
         @foreach($tabNames as $i => $name)
-            <div class="y-tabs__panel {{ $i === 0 ? 'is-active' : '' }}" id="y-tab-{{ $i }}">
+            <div class="y-tabs__panel {{ $i == 0 ? 'is-active' : '' }}" id="y-tab-{{ $i }}">
                 @include('yurba::resource._fields', ['fields' => $tabs[$name], 'record' => $record])
             </div>
         @endforeach

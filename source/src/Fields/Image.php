@@ -4,12 +4,12 @@ namespace Yurba\Cmf\Fields;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Yurba\Cmf\Support\Upload;
 
-// image upload under public/uploads/{dir}; column holds the web path, plain file move
 class Image extends Field
 {
     // bump on yurba-pv update
-    public const VIEWER_ASSET_VERSION = '1.0.0';
+    public const VIEWER_ASSET_VERSION = '1.0.3';
 
     public string $dir = 'admin';
 
@@ -32,15 +32,7 @@ class Image extends Field
             return; // keep the existing image when no new file is uploaded
         }
 
-        $file = $request->file($this->name);
-        $target = public_path('uploads/'.$this->dir);
-        if (! is_dir($target)) {
-            mkdir($target, 0755, true);
-        }
-        $filename = date('Ymd').'-'.bin2hex(random_bytes(6)).'.'.$file->getClientOriginalExtension();
-        $file->move($target, $filename);
-
-        $model->{$this->column()} = '/uploads/'.$this->dir.'/'.$filename;
+        $model->{$this->column()} = Upload::publicImage($request->file($this->name), 'uploads/'.$this->dir, $this->name);
     }
 
     public function indexComponent(): string

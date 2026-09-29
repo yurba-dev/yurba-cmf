@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * seo metadata for one record; read on the frontend via Seo::resolve().
- *
  * @property ?string $meta_title
  * @property ?string $meta_description
  * @property ?string $og_image

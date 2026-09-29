@@ -5,32 +5,42 @@ namespace Yurba\Cmf\Translations;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Yurba\Cmf\Facades\Yurba;
 
-/**
- * Per-locale field values kept in yurba_translations. Which fields are
- * translatable is declared on the resource (Field::translatable()); this trait
- * only stores and resolves the values, falling back to the base row.
- */
 trait HasTranslations
 {
     protected ?array $translationCache = null;
+
+    // morphMany without a db cascade; a soft delete can be restored, so translations go only with the row itself
+    public static function bootHasTranslations(): void
+    {
+        static::deleted(function ($model) {
+            if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
+                return;
+            }
+            try {
+                $model->forgetTranslations();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+    }
 
     public function translations(): MorphMany
     {
         return $this->morphMany(Translation::class, 'translatable');
     }
 
-    // localized value of a field, or the base value when there is no translation
     public function tr(string $field, ?string $locale = null): mixed
     {
         $locale = $locale ?: Yurba::contentLocale();
 
-        if (! Yurba::multilangEnabled() || $locale === Yurba::defaultLocale()) {
+        if (! Yurba::multilangEnabled() || $locale == Yurba::defaultLocale()) {
             return $this->{$field};
         }
 
         $value = $this->translationValue($locale, $field);
 
-        return $value === null ? $this->{$field} : $value;
+        // a blank translation falls back too: an emptied editor field is stored as '', not null
+        return $value === null || $value === '' ? $this->{$field} : $value;
     }
 
     public function translationValue(string $locale, string $field): mixed
@@ -38,12 +48,12 @@ trait HasTranslations
         return $this->translationMap()[$locale][$field] ?? null;
     }
 
-    /** @return array<string, string> [field => value] for one locale */
     public function localeValues(string $locale): array
     {
         return $this->translationMap()[$locale] ?? [];
     }
 
+    // the loaded relation is dropped too, or translationMap() would rebuild from the stale rows
     public function putTranslation(string $locale, string $field, mixed $value): void
     {
         $this->translations()->updateOrCreate(
@@ -51,6 +61,7 @@ trait HasTranslations
             ['value' => $value]
         );
         $this->translationCache = null;
+        $this->unsetRelation('translations');
     }
 
     public function forgetTranslations(?string $locale = null): void
@@ -61,9 +72,10 @@ trait HasTranslations
         }
         $query->delete();
         $this->translationCache = null;
+        $this->unsetRelation('translations');
     }
 
-    /** @return array<string, array<string, string>> [locale => [field => value]] */
+    // [locale => [field => value]]
     protected function translationMap(): array
     {
         if ($this->translationCache !== null) {

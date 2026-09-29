@@ -7,8 +7,7 @@ use Yurba\Cmf\Fields\Number;
 use Yurba\Cmf\Fields\Select;
 use Yurba\Cmf\Fields\Text;
 
-// built-in settings for the panel (branding, accent, pagination); auto-registered.
-// values are read back by Panel/Resource, overriding the static config when set.
+// values override the static config when set
 class PanelSettings extends SettingsPage
 {
     public function label(): string

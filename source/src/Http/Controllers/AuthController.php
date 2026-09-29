@@ -53,7 +53,6 @@ class AuthController extends Controller
         return redirect()->intended(route('yurba.dashboard'));
     }
 
-    // block further attempts once too many failures pile up on this email+IP
     protected function ensureIsNotRateLimited(Request $request): void
     {
         $max = (int) config('yurba.login_throttle.max_attempts', 5);

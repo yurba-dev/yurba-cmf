@@ -17,7 +17,7 @@
             @endif
             @if($res->canDelete($yurbaUser, $record))
                 <form method="POST" action="{{ route('yurba.resource.destroy', [$res->uriKey(), $record->getKey()]) }}"
-                      onsubmit="return confirm('{{ __('Delete this :name?', ['name' => \Illuminate\Support\Str::lower($res->label())]) }}');" class="y-inline">
+                      onsubmit="return confirm(@js(__('Delete this :name?', ['name' => \Illuminate\Support\Str::lower($res->label())])));" class="y-inline">
                     @csrf @method('DELETE')
                     <button type="submit" class="y-btn y-btn__danger">{{ __('Delete') }}</button>
                 </form>
@@ -27,14 +27,14 @@
 
     @php
         $tabs = [];
-        foreach ($res->fields() as $f) {
+        foreach ($res->detailFields($record) as $f) {
             $tabs[$f->tab ?? ''][] = $f;
         }
     @endphp
 
     <div class="y-form--card">
         @foreach($tabs as $tabName => $tabFields)
-            @if($tabName !== '')<h2 class="y-detail__tab">{{ $tabName }}</h2>@endif
+            @if($tabName != '')<h2 class="y-detail__tab">{{ $tabName }}</h2>@endif
 
             @php
                 $bySection = [];
@@ -42,7 +42,7 @@
             @endphp
 
             @foreach($bySection as $sectionName => $sectionFields)
-                @if($sectionName !== '')<h3 class="y-section__title">{{ $sectionName }}</h3>@endif
+                @if($sectionName != '')<h3 class="y-section__title">{{ $sectionName }}</h3>@endif
                 <div class="y-detail">
                     @foreach($sectionFields as $field)
                         <div class="y-detail__row">
@@ -74,7 +74,7 @@
                             @php($changed = $rev->changedFrom($current))
                             <tr>
                                 <td>{{ $rev->created_at?->diffForHumans() }} <span class="y-muted">· {{ $rev->created_at }}</span></td>
-                                <td>{{ $rev->user_name ?? '—' }}</td>
+                                <td>{{ $rev->user_name ?? '-' }}</td>
                                 <td>
                                     @if($loop->first && empty($changed))<span class="y-pill y-pill--ok">{{ __('current') }}</span>
                                     @elseif(empty($changed))<span class="y-muted">{{ __('no differences') }}</span>
@@ -85,7 +85,7 @@
                                     <div class="y-col-actions">
                                         @if(! ($loop->first && empty($changed)) && $res->canUpdate($yurbaUser, $record))
                                             <form method="POST" action="{{ route('yurba.resource.revision.restore', [$res->uriKey(), $record->getKey(), $rev->id]) }}"
-                                                  onsubmit="return confirm('{{ __('Restore this revision? The current state is saved as a new revision.') }}');" class="y-inline">
+                                                  onsubmit="return confirm(@js(__('Restore this revision? The current state is saved as a new revision.')));" class="y-inline">
                                                 @csrf
                                                 <button type="submit" class="y-btn y-btn__ghost y-btn__xs">{{ __('Restore') }}</button>
                                             </form>

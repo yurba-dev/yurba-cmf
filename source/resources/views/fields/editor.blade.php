@@ -1,13 +1,10 @@
 @php
     $driver = config('yurba.editor.driver', 'yurba');
-    $isYurba = $driver === 'yurba';
+    $isYurba = $driver == 'yurba';
     $value = $field->sanitize($field->formValue($record));
 @endphp
 
-{{-- The base control is always a plain <textarea> (so it posts, and degrades
-     gracefully). Which editor enhances it is chosen by the yurba.editor.driver
-     config: 'yurba' (bundled), 'none' (plain), or 'custom' (bring your own,
-     targeting `textarea[data-editor]`). --}}
+{{-- always a plain textarea so it posts and degrades gracefully; yurba.editor.driver picks what enhances it --}}
 <textarea id="{{ $field->name }}"
           name="{{ $field->name }}"
           class="y-input y-textarea y-editor"
@@ -26,7 +23,7 @@
           @if($field->placeholder) data-placeholder="{{ $field->placeholder }}" placeholder="{{ $field->placeholder }}" @endif
           rows="{{ (int) max(6, $field->minHeight / 28) }}">{{ $value }}</textarea>
 
-@if($driver === 'custom')
+@if($driver == 'custom')
     @once
         @foreach((array) config('yurba.editor.styles', []) as $href)
             <link rel="stylesheet" href="{{ $href }}">

@@ -1,7 +1,4 @@
-{{-- Shared media picker modal (rendered once per page). Any [data-media-field]
-     opens it; picking an item writes the URL back into that field. The @once
-     guards the whole modal so several includes (a Media field plus media
-     repeater columns) still emit a single #y-media-picker. --}}
+{{-- @once so several includes (a Media field plus media repeater columns) emit a single #y-media-picker --}}
 @once
 <div class="y-picker" id="y-media-picker" hidden
      data-list-url="{{ route('yurba.media.list') }}"
@@ -26,13 +23,10 @@
         </div>
     </div>
 </div>
-{{-- load YurbaPV so [data-media-preview] images zoom (parity with the Image field);
-     when ui.viewer is off, main.js's initViewer no-ops and previews just don't zoom --}}
 @if(config('yurba.ui.viewer', true))
     @include('yurba::partials.ui-viewer')
 @endif
-{{-- load YurbaUI so main.js renders the picker inside a y-win modal; without it the
-     standalone .y-picker overlay is used. @once-guarded, shared with the Select field. --}}
+{{-- YurbaUI lets main.js open the picker in a y-win modal; without it the standalone overlay is used --}}
 @if(config('yurba.ui.select', true))
     @include('yurba::partials.ui-select')
 @endif

@@ -5,8 +5,6 @@ namespace Yurba\Cmf\Pages;
 use Illuminate\Http\Request;
 use Yurba\Cmf\Media\MediaOptimization;
 
-// read-only screen listing recent image-optimization outcomes. reached from the
-// "Optimize images" setting (and a direct URL); hidden from the sidebar.
 class MediaOptimizationLogPage extends Page
 {
     public function label(): string
@@ -32,7 +30,7 @@ class MediaOptimizationLogPage extends Page
 
     public function handle(Request $request): mixed
     {
-        if ($request->input('action') === 'clear') {
+        if ($request->input('action') == 'clear') {
             MediaOptimization::clear();
 
             return back()->with('yurba_status', __('Optimization log cleared.'));

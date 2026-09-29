@@ -6,7 +6,6 @@ use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputOption;
 
-// scaffolds a custom Field subclass + its blade form partial, wiring component()
 class FieldMakeCommand extends GeneratorCommand
 {
     protected $name = 'yurba:field';
@@ -37,7 +36,6 @@ class FieldMakeCommand extends GeneratorCommand
         return str_replace('{{ view }}', $this->viewName($name), $stub);
     }
 
-    // dotted blade view name, e.g. "admin.fields.color-picker"
     protected function viewName(string $name): string
     {
         return 'admin.fields.'.Str::kebab(class_basename($name));

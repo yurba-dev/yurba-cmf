@@ -15,27 +15,25 @@ use Yurba\Cmf\Http\Controllers\UploadController;
 $prefix = trim((string) config('yurba.prefix', 'admin'), '/');
 $middleware = (array) config('yurba.middleware', ['web']);
 
-// Public XML sitemap — deliberately outside the admin prefix and auth gate.
+// public, so deliberately outside the admin prefix and auth gate
 if (config('yurba.sitemap.enabled', true)) {
     Route::get('sitemap.xml', [SitemapController::class, 'index'])
         ->middleware('web')->name('yurba.sitemap');
 
-    // /sitemap-{name}.xml — a single named sitemap when yurba.sitemap.sitemaps is set
     Route::get('sitemap-{name}.xml', [SitemapController::class, 'show'])
         ->middleware('web')->where('name', '[A-Za-z0-9_-]+')->name('yurba.sitemap.named');
 }
 
 Route::prefix($prefix)->middleware($middleware)->name('yurba.')->group(function () {
-    // Auth (no gate — the login screen must be reachable by guests).
+    // no gate: the login screen must be reachable by guests
     Route::get('login', [AuthController::class, 'show'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.attempt');
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Everything below requires an authorized admin.
     Route::middleware('yurba.auth')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-        // Registered before the {resource} catch-all so the literal paths win.
+        // registered before the {resource} catch-all so the literal paths win
         Route::post('_editor/upload', [UploadController::class, 'store'])->name('editor.upload');
         Route::get('search', [SearchController::class, 'page'])->name('search');
         Route::get('media', [MediaController::class, 'index'])->name('media');
@@ -45,7 +43,6 @@ Route::prefix($prefix)->middleware($middleware)->name('yurba.')->group(function 
         Route::get('settings/{page}', [SettingsController::class, 'show'])->name('settings.show');
         Route::put('settings/{page}', [SettingsController::class, 'save'])->name('settings.save');
 
-        // custom screens registered in config('yurba.pages')
         Route::get('pages/{page}', [PageController::class, 'show'])->name('page.show');
         Route::post('pages/{page}', [PageController::class, 'handle'])->name('page.handle');
 

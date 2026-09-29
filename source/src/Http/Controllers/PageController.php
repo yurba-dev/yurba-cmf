@@ -34,7 +34,6 @@ class PageController extends Controller
         return $screen;
     }
 
-    // a full Response is used as-is; a view/string is wrapped in the panel chrome
     protected function respond(Page $screen, mixed $result): Response
     {
         if ($result instanceof Response) {

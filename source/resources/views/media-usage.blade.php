@@ -12,32 +12,43 @@
         @endforeach
     </div>
 
+    @if($scanFailed ?? false)
+        <p class="y-help">{{ __('Some sources could not be scanned, so deleting unused images is disabled.') }}</p>
+    @endif
+
     <div class="y-toolbar">
         <span class="y-usage__globals">
             <form method="POST" action="{{ $handle }}"
-                  onsubmit="return confirm('{{ __('Generate all missing thumbnails? This may take a while.') }}')">
+                  onsubmit="return confirm(@js(__('Generate all missing thumbnails? This may take a while.')))">
                 @csrf
                 <button type="submit" name="action" value="generate_all" class="y-btn y-btn__primary y-btn__xs">{{ __('Generate all missing') }}</button>
             </form>
-            @if($counts['unused'] > 0)
-                <form method="POST" action="{{ $handle }}"
-                      onsubmit="return confirm('{{ __('Delete all unused images? This removes the files.') }}')">
-                    @csrf
-                    <button type="submit" name="action" value="delete_unused" class="y-btn y-btn__danger y-btn__xs">{{ __('Delete unused') }} ({{ $counts['unused'] }})</button>
-                </form>
+            @if($counts['unused'] > 0 && ! ($scanFailed ?? false))
+                @if($filter == 'unused')
+                    <form method="POST" action="{{ $handle }}"
+                          onsubmit="return confirm(@js(__('Delete all unused images? This removes the files.')))">
+                        @csrf
+                        @foreach($unusedIds ?? [] as $unusedId)
+                            <input type="hidden" name="ids[]" value="{{ $unusedId }}">
+                        @endforeach
+                        <button type="submit" name="action" value="delete_unused" class="y-btn y-btn__danger y-btn__xs">{{ __('Delete unused') }} ({{ $counts['unused'] }})</button>
+                    </form>
+                @else
+                    <a href="{{ $link('unused') }}" class="y-btn y-btn__danger y-btn__xs">{{ __('Delete unused') }} ({{ $counts['unused'] }})</a>
+                @endif
             @endif
             @if($counts['all'] > 0)
                 <form method="POST" action="{{ $handle }}"
-                      onsubmit="return confirm('{{ __('Delete all cached thumbnails? They will be regenerated on demand.') }}')">
+                      onsubmit="return confirm(@js(__('Delete all cached thumbnails? They will be regenerated on demand.')))">
                     @csrf
                     <button type="submit" name="action" value="delete_thumbs_all" class="y-btn y-btn__ghost y-btn__xs">{{ __('Delete thumbnails') }}</button>
                 </form>
             @endif
         </span>
         <span class="y-toolbar__actions">
-            <a href="{{ $link('') }}" class="y-btn y-btn__ghost y-btn__xs {{ $filter === '' ? 'is-active' : '' }}">{{ __('All') }} ({{ $counts['all'] }})</a>
-            <a href="{{ $link('missing') }}" class="y-btn y-btn__ghost y-btn__xs {{ $filter === 'missing' ? 'is-active' : '' }}">{{ __('Missing thumbnails') }} ({{ $counts['missing'] }})</a>
-            <a href="{{ $link('unused') }}" class="y-btn y-btn__ghost y-btn__xs {{ $filter === 'unused' ? 'is-active' : '' }}">{{ __('Unused') }} ({{ $counts['unused'] }})</a>
+            <a href="{{ $link('') }}" class="y-btn y-btn__ghost y-btn__xs {{ $filter == '' ? 'is-active' : '' }}">{{ __('All') }} ({{ $counts['all'] }})</a>
+            <a href="{{ $link('missing') }}" class="y-btn y-btn__ghost y-btn__xs {{ $filter == 'missing' ? 'is-active' : '' }}">{{ __('Missing thumbnails') }} ({{ $counts['missing'] }})</a>
+            <a href="{{ $link('unused') }}" class="y-btn y-btn__ghost y-btn__xs {{ $filter == 'unused' ? 'is-active' : '' }}">{{ __('Unused') }} ({{ $counts['unused'] }})</a>
         </span>
     </div>
 
@@ -48,9 +59,9 @@
         <span class="y-bulkbar__actions">
             <button type="submit" class="y-btn y-btn__ghost y-btn__xs" data-bulk="generate">{{ __('Generate') }}</button>
             <button type="submit" class="y-btn y-btn__ghost y-btn__xs" data-bulk="delete_thumbs"
-                    onclick="return confirm('{{ __('Delete cached thumbnails for the selected images?') }}')">{{ __('Delete thumbnails') }}</button>
+                    onclick="return confirm(@js(__('Delete cached thumbnails for the selected images?')))">{{ __('Delete thumbnails') }}</button>
             <button type="submit" class="y-btn y-btn__danger y-btn__xs" data-bulk="delete_media"
-                    onclick="return confirm('{{ __('Delete the selected images? This removes the files.') }}')">{{ __('Delete') }}</button>
+                    onclick="return confirm(@js(__('Delete the selected images? This removes the files.')))">{{ __('Delete') }}</button>
         </span>
     </form>
 
@@ -76,7 +87,7 @@
                             <div class="y-usage__media">
                                 <a href="{{ $m->url }}" target="_blank" rel="noopener">
                                     <img src="{{ \Yurba\Cmf\Media\Media::thumb($m->url, 'small') }}" data-full="{{ $m->url }}" alt="" class="y-thumb"
-                                         onerror="this.onerror=null;this.src='{{ $m->url }}'">
+                                         onerror="this.onerror=null;this.src=this.dataset.full">
                                 </a>
                                 <div>
                                     <code>{{ \Illuminate\Support\Str::afterLast($m->path, '/') }}</code>
@@ -102,7 +113,7 @@
                         <td>
                             <div class="y-usage__thumbs">
                                 @foreach($r['thumbs'] as $name => $t)
-                                    <span class="y-pill {{ $t['exists'] ? 'y-pill--ok' : 'y-pill--muted' }}" title="{{ $name }} — {{ $t['width'] }}px">{{ $name }}</span>
+                                    <span class="y-pill {{ $t['exists'] ? 'y-pill--ok' : 'y-pill--muted' }}" title="{{ $name }}, {{ $t['width'] }}px">{{ $name }}</span>
                                 @endforeach
                             </div>
                         </td>
@@ -117,14 +128,14 @@
                                     </form>
                                 @endif
                                 <form method="POST" action="{{ $handle }}" class="y-inline"
-                                      onsubmit="return confirm('{{ __('Delete the cached thumbnails for this image?') }}')">
+                                      onsubmit="return confirm(@js(__('Delete the cached thumbnails for this image?')))">
                                     @csrf
                                     <input type="hidden" name="action" value="delete_thumbs">
                                     <input type="hidden" name="id" value="{{ $m->id }}">
                                     <button type="submit" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Delete thumbnails') }}" aria-label="{{ __('Delete thumbnails') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'hide_image', 'text' => __('Delete thumbnails')])</button>
                                 </form>
                                 <form method="POST" action="{{ $handle }}" class="y-inline"
-                                      onsubmit="return confirm('{{ __('Delete this image? This removes the file.') }}')">
+                                      onsubmit="return confirm(@js(__('Delete this image? This removes the file.')))">
                                     @csrf
                                     <input type="hidden" name="action" value="delete_media">
                                     <input type="hidden" name="id" value="{{ $m->id }}">

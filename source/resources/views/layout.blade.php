@@ -5,18 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') · {{ $yurbaBrand }}</title>
-    {{-- YurbaUI base first, so the panel theme (main.css) overrides it. --}}
+    {{-- YurbaUI base first, so the panel theme (main.css) overrides it --}}
     @if(config('yurba.ui.select', true))
-        <link rel="stylesheet" href="{{ asset('vendor/yurba/yurba-ui.min.css') }}?v={{ \Yurba\Cmf\Fields\Select::UI_ASSET_VERSION }}">
+        <link rel="stylesheet" href="{{ asset('vendor/yurba/yurba-ui.min.css') }}?v={{ \Yurba\Cmf\Panel::assetVersion('yurba-ui.min.css', \Yurba\Cmf\Fields\Select::UI_ASSET_VERSION) }}">
     @endif
     @if(config('yurba.ui.viewer', true))
-        <link rel="stylesheet" href="{{ asset('vendor/yurba/yurba-pv.min.css') }}?v={{ \Yurba\Cmf\Fields\Image::VIEWER_ASSET_VERSION }}">
+        <link rel="stylesheet" href="{{ asset('vendor/yurba/yurba-pv.min.css') }}?v={{ \Yurba\Cmf\Panel::assetVersion('yurba-pv.min.css', \Yurba\Cmf\Fields\Image::VIEWER_ASSET_VERSION) }}">
     @endif
+    {{-- with YurbaUI on, the editor build that opens its menus and dialogs through it; else the standalone one --}}
+    @php($editorBuild = config('yurba.ui.select', true) ? 'yurba-editor.ui.min' : 'yurba-editor.min')
     @if(config('yurba.editor.driver') == 'yurba')
-        <link rel="stylesheet" href="{{ asset('vendor/yurba/yurba-editor.min.css') }}?v={{ \Yurba\Cmf\Fields\Editor::ASSET_VERSION }}">
+        <link rel="stylesheet" href="{{ asset('vendor/yurba/'.$editorBuild.'.css') }}?v={{ \Yurba\Cmf\Panel::assetVersion($editorBuild.'.css', \Yurba\Cmf\Fields\Editor::ASSET_VERSION) }}">
     @endif
     @if(config('yurba.ui.icons', true))
-        {{-- Font only; the .material-symbols-rounded helper class lives in main.css. --}}
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded">
     @endif
     <link rel="stylesheet" href="{{ asset('vendor/yurba/main.css') }}?v={{ @filemtime(public_path('vendor/yurba/main.css')) }}">
@@ -54,13 +55,13 @@
                     </a>
                 @endif
 
-                @foreach($yurbaPages->filter->inNav()->filter(fn ($p) => $p->group() !== 'Settings')->groupBy(fn ($p) => $p->group()) as $group => $groupPages)
+                @foreach($yurbaPages->filter->inNav()->filter(fn ($p) => $p->group() != 'Settings')->groupBy(fn ($p) => $p->group()) as $group => $groupPages)
                     @if($group)
                         <div class="y-nav__label">{{ $group }}</div>
                     @endif
                     @foreach($groupPages as $p)
                         <a href="{{ route('yurba.page.show', $p->uriKey()) }}"
-                           class="y-nav__link {{ request()->routeIs('yurba.page.*') && request()->route('page') === $p->uriKey() ? 'is-active' : '' }}">
+                           class="y-nav__link {{ request()->routeIs('yurba.page.*') && request()->route('page') == $p->uriKey() ? 'is-active' : '' }}">
                             @if($p->icon())
                                 <span class="y-nav__icon">{!! $p->icon() !!}</span>
                             @else
@@ -74,7 +75,7 @@
                 <div class="y-nav__label">{{ __('Resources') }}</div>
                 @foreach($yurbaResources as $r)
                     <a href="{{ route('yurba.resource.index', $r->uriKey()) }}"
-                       class="y-nav__link {{ $current === $r->uriKey() ? 'is-active' : '' }}">
+                       class="y-nav__link {{ $current == $r->uriKey() ? 'is-active' : '' }}">
                         @if($r->icon())
                             <span class="y-nav__icon">{!! $r->icon() !!}</span>
                         @else
@@ -84,13 +85,13 @@
                     </a>
                 @endforeach
 
-                @php($navSettingsPages = $yurbaPages->filter->inNav()->filter(fn ($p) => $p->group() === 'Settings'))
+                @php($navSettingsPages = $yurbaPages->filter->inNav()->filter(fn ($p) => $p->group() == 'Settings'))
                 @if(count($yurbaSettings) || $navSettingsPages->isNotEmpty())
                     <div class="y-nav__label">{{ __('Settings') }}</div>
                     @php($currentSettings = request()->route('page'))
                     @foreach($yurbaSettings as $s)
                         <a href="{{ route('yurba.settings.show', $s->uriKey()) }}"
-                           class="y-nav__link {{ request()->routeIs('yurba.settings.*') && $currentSettings === $s->uriKey() ? 'is-active' : '' }}">
+                           class="y-nav__link {{ request()->routeIs('yurba.settings.*') && $currentSettings == $s->uriKey() ? 'is-active' : '' }}">
                             @if($s->icon())
                                 <span class="y-nav__icon">{!! $s->icon() !!}</span>
                             @else
@@ -101,7 +102,7 @@
                     @endforeach
                     @foreach($navSettingsPages as $p)
                         <a href="{{ route('yurba.page.show', $p->uriKey()) }}"
-                           class="y-nav__link {{ request()->routeIs('yurba.page.*') && request()->route('page') === $p->uriKey() ? 'is-active' : '' }}">
+                           class="y-nav__link {{ request()->routeIs('yurba.page.*') && request()->route('page') == $p->uriKey() ? 'is-active' : '' }}">
                             @if($p->icon())
                                 <span class="y-nav__icon">{!! $p->icon() !!}</span>
                             @else
@@ -155,7 +156,9 @@
         <script src="{{ $src }}"></script>
     @endforeach
     @if(config('yurba.editor.driver') == 'yurba')
-        <script src="{{ asset('vendor/yurba/yurba-editor.min.js') }}?v={{ \Yurba\Cmf\Fields\Editor::ASSET_VERSION }}" defer></script>
+        {{-- the .ui build calls YurbaUI without a guard, so YurbaUI has to run first --}}
+        @if(config('yurba.ui.select', true))@include('yurba::partials.ui-select')@endif
+        <script src="{{ asset('vendor/yurba/'.$editorBuild.'.js') }}?v={{ \Yurba\Cmf\Panel::assetVersion($editorBuild.'.js', \Yurba\Cmf\Fields\Editor::ASSET_VERSION) }}" defer></script>
     @endif
     <script src="{{ asset('vendor/yurba/main.js') }}?v={{ @filemtime(public_path('vendor/yurba/main.js')) }}"></script>
     {!! $yurbaFoot !!}

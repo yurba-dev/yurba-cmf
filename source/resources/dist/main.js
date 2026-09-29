@@ -6,13 +6,44 @@
 
     function initTabs() {
         document.querySelectorAll('.y-tabs').forEach(function (bar) {
-            var form = bar.closest('form')
-            var buttons = bar.querySelectorAll('[data-tab-target]')
-            buttons.forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var id = btn.getAttribute('data-tab-target')
-                    buttons.forEach(function (b) { b.classList.toggle('is-active', b == btn) })
-                    form.querySelectorAll('.y-tabs__panel').forEach(function (p) { p.classList.toggle('is-active', p.id == id) })
+            var scope = bar.closest('form') || document
+            var buttons = Array.prototype.slice.call(bar.querySelectorAll('[data-tab-target]'))
+            bar.setAttribute('role', 'tablist')
+
+            function activate(btn, focus) {
+                var id = btn.getAttribute('data-tab-target')
+                buttons.forEach(function (b) {
+                    var on = b == btn
+                    b.classList.toggle('is-active', on)
+                    b.setAttribute('aria-selected', on ? 'true' : 'false')
+                    b.tabIndex = on ? 0 : -1
+                })
+                scope.querySelectorAll('.y-tabs__panel').forEach(function (p) { p.classList.toggle('is-active', p.id == id) })
+                if (focus) btn.focus()
+            }
+
+            buttons.forEach(function (btn, i) {
+                var id = btn.getAttribute('data-tab-target')
+                if (!btn.id) btn.id = id + '-tab'
+                btn.setAttribute('role', 'tab')
+                btn.setAttribute('aria-controls', id)
+                btn.setAttribute('aria-selected', btn.classList.contains('is-active') ? 'true' : 'false')
+                btn.tabIndex = btn.classList.contains('is-active') ? 0 : -1
+                var panel = document.getElementById(id)
+                if (panel) {
+                    panel.setAttribute('role', 'tabpanel')
+                    panel.setAttribute('aria-labelledby', btn.id)
+                }
+                btn.addEventListener('click', function () { activate(btn, false) })
+                btn.addEventListener('keydown', function (e) {
+                    var to = null
+                    if (e.key == 'ArrowRight') to = buttons[(i + 1) % buttons.length]
+                    else if (e.key == 'ArrowLeft') to = buttons[(i - 1 + buttons.length) % buttons.length]
+                    else if (e.key == 'Home') to = buttons[0]
+                    else if (e.key == 'End') to = buttons[buttons.length - 1]
+                    if (!to) return
+                    e.preventDefault()
+                    activate(to, true)
                 })
             })
         })
@@ -184,11 +215,15 @@
         var query = ''
         var loading = false
         var hasMore = false
+        var generation = 0
+        var controller = null
+        var returnFocus = null
         var winModal = null
         function winAvailable() { return !!(window.YurbaUI && window.YurbaUI.Modal) }
 
         function open(fieldEl) {
             activeField = fieldEl
+            returnFocus = document.activeElement
             if (winAvailable()) {
                 // reuse one modal instance so its re-mounted parts survive hide()'s deferred DOM removal
                 if (!winModal) {
@@ -211,9 +246,25 @@
             load('')
         }
         function close() {
+            var wasFallback = !picker.hidden
             if (winModal && winModal.isShowed()) winModal.hide()
             picker.hidden = true
             activeField = null
+            if (wasFallback && returnFocus && document.contains(returnFocus)) returnFocus.focus()
+            returnFocus = null
+        }
+
+        // the plain overlay (no YurbaUI.Modal) keeps Tab inside itself like a dialog
+        function trapFocus(e) {
+            var items = Array.prototype.slice.call(picker.querySelectorAll('input, button, [tabindex]:not([tabindex="-1"])'))
+                .filter(function (el) { return !el.disabled && el.getClientRects().length })
+            if (!items.length) return
+            var first = items[0]
+            var last = items[items.length - 1]
+            if (!picker.contains(document.activeElement) || (e.shiftKey && document.activeElement == first) || (!e.shiftKey && document.activeElement == last)) {
+                e.preventDefault()
+                ;(e.shiftKey ? last : first).focus()
+            }
         }
 
         function select(item) {
@@ -222,13 +273,26 @@
             inputEl.value = item.url
             var prev = activeField.querySelector('[data-media-preview]')
             prev.classList.remove('is-empty')
-            prev.innerHTML = item.is_image
-                ? '<img src="' + item.url + '" alt="">'
-                : '<span class="material-symbols-rounded">description</span>'
+            prev.replaceChildren(previewNode(item.is_image, item.url, false))
             if (item.is_image && window.YurbaViewer) window.YurbaViewer.bind(prev.querySelector('img'))
             var clr = activeField.querySelector('[data-media-clear]')
             if (clr) clr.hidden = false
             close()
+        }
+
+        // urls come from stored file names, so they are set as properties, never parsed as html
+        function previewNode(isImage, url, lazy) {
+            if (!isImage) {
+                var icon = document.createElement('span')
+                icon.className = 'material-symbols-rounded'
+                icon.textContent = 'description'
+                return icon
+            }
+            var img = document.createElement('img')
+            img.alt = ''
+            if (lazy) img.loading = 'lazy'
+            img.src = url
+            return img
         }
 
         function makeCell(it) {
@@ -236,9 +300,7 @@
             cell.type = 'button'
             cell.className = 'y-picker__item'
             cell.title = it.name
-            cell.innerHTML = it.is_image
-                ? '<img src="' + (it.thumb || it.url) + '" alt="" loading="lazy">'
-                : '<span class="material-symbols-rounded">description</span>'
+            cell.appendChild(previewNode(it.is_image, it.thumb || it.url, true))
             cell.addEventListener('click', function () { select(it) })
             return cell
         }
@@ -246,9 +308,19 @@
         function fetchPage() {
             if (loading || (page > 1 && !hasMore)) return
             loading = true
-            fetch(listUrl + '?q=' + encodeURIComponent(query) + '&page=' + page, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
-                .then(function (r) { return r.json() })
+            // a newer search bumps the generation; answers to older ones are dropped
+            var mine = generation
+            fetch(listUrl + '?q=' + encodeURIComponent(query) + '&page=' + page, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+                signal: controller ? controller.signal : undefined
+            })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status)
+                    return r.json()
+                })
                 .then(function (d) {
+                    if (mine != generation) return
                     var items = (d && d.items) || []
                     if (page == 1) {
                         grid.innerHTML = ''
@@ -260,7 +332,13 @@
                     loading = false
                     maybeLoadMore()
                 })
-                .catch(function () { loading = false })
+                .catch(function () {
+                    if (mine != generation) return
+                    loading = false
+                    hasMore = false
+                    emptyEl.textContent = 'Could not load media. Reload the page and try again.'
+                    emptyEl.hidden = false
+                })
         }
 
         function scrollEl() {
@@ -277,6 +355,10 @@
         }
 
         function load(q) {
+            generation++
+            if (controller) controller.abort()
+            controller = window.AbortController ? new AbortController() : null
+            loading = false
             query = q
             page = 1
             hasMore = false
@@ -303,13 +385,23 @@
                 method: 'POST', body: fd, credentials: 'same-origin',
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             })
-                .then(function (r) { return r.json() })
-                .then(function (d) {
+                .then(function (r) {
+                    return r.json().catch(function () { return {} }).then(function (d) { return { ok: r.ok, d: d } })
+                })
+                .then(function (res) {
                     uploadEl.value = ''
+                    var d = res.d
+                    if (!res.ok) {
+                        alert((d && d.message) || 'Upload failed.')
+                        return
+                    }
                     if (d && d.items && d.items[0]) select(d.items[0])
                     else load(searchEl.value.trim())
                 })
-                .catch(function () { load(searchEl.value.trim()) })
+                .catch(function () {
+                    uploadEl.value = ''
+                    alert('Upload failed.')
+                })
         })
 
         document.addEventListener('click', function (e) {
@@ -331,6 +423,7 @@
             if (t.closest && t.closest('[data-picker-close]')) close()
         })
         document.addEventListener('keydown', function (e) {
+            if (e.key == 'Tab' && !picker.hidden) { trapFocus(e); return }
             if (e.key != 'Escape') return
             if ((winModal && winModal.isShowed()) || !picker.hidden) close()
         })
@@ -360,7 +453,6 @@
         })
     }
 
-    // enhance every <textarea data-yurba-editor> with the bundled YurbaEditor
     function initEditor(root) {
         if (!window.YurbaEditor || !window.YurbaEditor.create) return
         var nodes = (root || document).querySelectorAll('textarea[data-yurba-editor]')
@@ -391,7 +483,8 @@
         sel.dataset.yeSelReady = '1'
         var opts = []
         for (var i = 0; i < sel.options.length; i++) opts.push({ value: sel.options[i].value, label: sel.options[i].text })
-        var ui = new YurbaUI.Select(opts, { value: sel.value, placeholder: '—' })
+        // option text is decoded data (related titles, user names), so it must stay text
+        var ui = new YurbaUI.Select(opts, { value: sel.value, placeholder: '-', html: false })
         sel.style.display = 'none'
         sel.parentNode.insertBefore(ui.render(), sel.nextSibling)
         ui.onChange(function (v) {
@@ -443,8 +536,8 @@
         var key = 'yurba:sidebar-scroll'
         var saved = sessionStorage.getItem(key)
         if (saved != null) sidebar.scrollTop = parseInt(saved, 10) || 0
-        var save = function () { sessionStorage.setItem(key, String(sidebar.scrollTop)) }
-        sidebar.addEventListener('scroll', save, { passive: true })
+        function save() { sessionStorage.setItem(key, String(sidebar.scrollTop)) }
+        sidebar.addEventListener('scroll', save)
         window.addEventListener('beforeunload', save)
     }
 
@@ -454,11 +547,63 @@
             tbody.dataset.reorderReady = '1'
             var url = tbody.getAttribute('data-reorder-url')
             var dragging = null
+            var before = null
+
+            function rows() { return Array.prototype.slice.call(tbody.querySelectorAll('tr[data-id]')) }
+
+            function save(snapshot) {
+                var ids = rows().map(function (tr) { return tr.getAttribute('data-id') })
+                if (snapshot.join(',') == ids.join(',')) return
+                var byId = {}
+                rows().forEach(function (tr) { byId[tr.getAttribute('data-id')] = tr })
+                function rollback() {
+                    snapshot.forEach(function (id) { if (byId[id]) tbody.appendChild(byId[id]) })
+                    alert('The new order could not be saved. Reload the page and try again.')
+                }
+                var meta = document.querySelector('meta[name="csrf-token"]')
+                fetch(url, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : ''
+                    },
+                    body: JSON.stringify({ ids: ids })
+                })
+                    .then(function (r) { if (!r.ok) rollback() })
+                    .catch(rollback)
+            }
+
+            // keyboard alternative to drag and drop: the handle is a button, arrows move the row
+            rows().forEach(function (tr) {
+                var handle = tr.querySelector('.y-drag')
+                if (!handle) return
+                handle.setAttribute('role', 'button')
+                handle.setAttribute('tabindex', '0')
+                handle.removeAttribute('aria-hidden')
+                handle.setAttribute('aria-label', 'Move row (arrow up / arrow down)')
+            })
+            tbody.addEventListener('keydown', function (e) {
+                if (e.key != 'ArrowUp' && e.key != 'ArrowDown') return
+                var handle = e.target.closest ? e.target.closest('.y-drag') : null
+                if (!handle) return
+                var tr = handle.closest('tr[data-id]')
+                var sibling = e.key == 'ArrowUp' ? tr.previousElementSibling : tr.nextElementSibling
+                if (!sibling || !sibling.hasAttribute('data-id')) return
+                e.preventDefault()
+                var snapshot = rows().map(function (r) { return r.getAttribute('data-id') })
+                tbody.insertBefore(tr, e.key == 'ArrowUp' ? sibling : sibling.nextSibling)
+                handle.focus()
+                save(snapshot)
+            })
 
             tbody.addEventListener('dragstart', function (e) {
                 var tr = e.target.closest('tr[draggable]')
                 if (!tr) return
                 dragging = tr
+                before = rows().map(function (r) { return r.getAttribute('data-id') })
                 tr.classList.add('is-dragging')
                 e.dataTransfer.effectAllowed = 'move'
             })
@@ -479,18 +624,8 @@
                 if (!dragging) return
                 dragging.classList.remove('is-dragging')
                 dragging = null
-                var ids = Array.prototype.map.call(tbody.querySelectorAll('tr[data-id]'), function (tr) { return tr.getAttribute('data-id') })
-                var meta = document.querySelector('meta[name="csrf-token"]')
-                fetch(url, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': meta ? meta.getAttribute('content') : ''
-                    },
-                    body: JSON.stringify({ ids: ids })
-                })
+                save(before || [])
+                before = null
             })
         })
     }

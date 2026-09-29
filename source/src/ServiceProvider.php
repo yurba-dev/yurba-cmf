@@ -25,32 +25,38 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'yurba');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        // string-keyed JSON translations (lang/{locale}.json); English needs no file.
         $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
         $router->aliasMiddleware('yurba.auth', Authorize::class);
         $router->aliasMiddleware('yurba.locale', \Yurba\Cmf\Http\Middleware\SetLocale::class);
 
-        View::composer('yurba::*', function ($view) {
-            $panel = app('yurba.cmf');
-            $view->with('yurbaBrand', $panel->brand());
-            $view->with('yurbaLogo', $panel->logo());
-            $view->with('yurbaHideBrand', $panel->hideBrandText());
-            $view->with('yurbaAccent', $panel->accent());
-            $view->with('yurbaActionIcons', $panel->actionIcons());
-            $view->with('yurbaStyles', $panel->styles());
-            $view->with('yurbaScripts', $panel->scripts());
-            $view->with('yurbaHead', $panel->head());
-            $view->with('yurbaFoot', $panel->foot());
-            $view->with('yurbaResources', $panel->authorizedResources());
-            $view->with('yurbaSettings', $panel->settingsPages());
-            $view->with('yurbaPages', $panel->pages());
-            $view->with('yurbaUser', auth()->guard($panel->guard())->user());
+        // every yurba partial (cells, row actions) hits this composer, so the panel data is built once per request
+        $shared = new \WeakMap();
+        View::composer('yurba::*', function ($view) use ($shared) {
+            $request = request();
+            if (! isset($shared[$request])) {
+                $panel = app('yurba.cmf');
+                $shared[$request] = [
+                    'yurbaBrand' => $panel->brand(),
+                    'yurbaLogo' => $panel->logo(),
+                    'yurbaHideBrand' => $panel->hideBrandText(),
+                    'yurbaAccent' => $panel->accent(),
+                    'yurbaActionIcons' => $panel->actionIcons(),
+                    'yurbaStyles' => $panel->styles(),
+                    'yurbaScripts' => $panel->scripts(),
+                    'yurbaHead' => $panel->head(),
+                    'yurbaFoot' => $panel->foot(),
+                    'yurbaResources' => $panel->authorizedResources(),
+                    'yurbaSettings' => $panel->settingsPages(),
+                    'yurbaPages' => $panel->pages(),
+                    'yurbaUser' => auth()->guard($panel->guard())->user(),
+                ];
+            }
+            $view->with($shared[$request]);
         });
 
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
-        // Apply admin-managed redirects globally, so they fire even for paths
-        // that no longer resolve to a route. Skipped on the console.
+        // global so redirects fire even for paths that no longer resolve to a route
         if (config('yurba.redirects.enabled', true) && ! $this->app->runningInConsole()) {
             $this->app->make(\Illuminate\Contracts\Http\Kernel::class)
                 ->pushMiddleware(HandleRedirects::class);
@@ -67,8 +73,6 @@ class ServiceProvider extends BaseServiceProvider
             ]);
         }
 
-        // auto-publish due scheduled records every minute (needs the app's cron
-        // to run `schedule:run`). disable with config('yurba.publish_scheduler').
         if (config('yurba.publish_scheduler', true)) {
             $this->app->booted(function () {
                 $this->app->make(Schedule::class)->command('yurba:publish-scheduled')->everyMinute();

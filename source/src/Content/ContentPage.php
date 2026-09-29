@@ -4,15 +4,10 @@ namespace Yurba\Cmf\Content;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Yurba\Cmf\Fields\Field;
 use Yurba\Cmf\Pages\Page;
 
-// a content page with its OWN field schema, persisted as one json document.
-// subclass, declare fields() (any Yurba\Cmf\Fields\*), register in yurba.pages.
-// read back on the frontend via Content::get($uriKey) / Content::field(...).
 abstract class ContentPage extends Page
 {
-    /** @return Field[] */
     abstract public function fields(): array;
 
     public function render(Request $request): mixed
@@ -25,10 +20,9 @@ abstract class ContentPage extends Page
 
     public function handle(Request $request): mixed
     {
-        $request->validate($this->validationRules());
+        $request->validate($this->visibleValidationRules($request->all()));
 
-        // start from the stored values so fields left untouched (e.g. an image
-        // that wasn't re-uploaded) keep their value, then fill the submitted ones
+        // start from the stored values so untouched fields (an image not re-uploaded) keep them
         $record = $this->record();
         foreach ($this->fields() as $field) {
             if ($field->readonly || ! $field->passesCondition($request->all())) {
@@ -44,8 +38,7 @@ abstract class ContentPage extends Page
             ->with('yurba_status', __(':name saved.', ['name' => $this->label()]));
     }
 
-    // throwaway model preloaded with the page's current values, so the field
-    // components render exactly like they do on a resource form
+    // throwaway model preloaded with current values so the fields render exactly like on a resource form
     protected function record(): Model
     {
         $record = new class extends Model
@@ -64,7 +57,6 @@ abstract class ContentPage extends Page
         return $record;
     }
 
-    /** @return array<string, mixed> */
     public function validationRules(): array
     {
         $rules = [];
@@ -75,5 +67,18 @@ abstract class ContentPage extends Page
         }
 
         return $rules;
+    }
+
+    // readonly and visibleWhen()-hidden fields are skipped so a hidden required field can't block the form
+    public function visibleValidationRules(array $input): array
+    {
+        $names = [];
+        foreach ($this->fields() as $field) {
+            if (! $field->readonly && $field->passesCondition($input)) {
+                $names[$field->name] = true;
+            }
+        }
+
+        return array_intersect_key($this->validationRules(), $names);
     }
 }

@@ -4,11 +4,11 @@ namespace Yurba\Cmf\Fields;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Yurba\Cmf\Support\Upload;
 
-// editable table of rows backed by an array/json column; empty rows dropped on save
 class Repeater extends Field
 {
-    /** @var array<string, string> column key => header label */
+    // key => header label, or key => ['label' => ..., plus one of image/media/editor/textarea/boolean/options]
     public array $columns = ['label' => 'Label', 'value' => 'Value'];
 
     public bool $withVisible = true;
@@ -24,7 +24,6 @@ class Repeater extends Field
         $this->onIndex = false;
     }
 
-    /** @param array<string, string> $columns key => header label */
     public function columns(array $columns): static
     {
         $this->columns = $columns;
@@ -69,8 +68,7 @@ class Repeater extends Field
 
     public function fill(Request $request, Model $model): void
     {
-        // rows can arrive from POST (text/hidden inputs) and FILES (image uploads);
-        // union the indexes so an image-only new row isn't missed
+        // rows arrive via POST and FILES (image uploads); union the indexes so an image-only new row isn't missed
         $posted = (array) $request->input($this->name, []);
         $indexes = array_unique(array_merge(
             array_keys($posted),
@@ -87,13 +85,15 @@ class Repeater extends Field
                 if (is_array($conf) && ! empty($conf['image'])) {
                     $file = $request->file("{$this->name}.{$i}.{$col}");
                     $entry[$col] = $file
-                        ? $this->storeImage($file, $conf['dir'] ?? 'content')
+                        ? $this->storeImage($file, $conf['dir'] ?? 'content', "{$this->name}.{$i}.{$col}")
                         : trim((string) ($row[$col] ?? '')); // hidden input keeps the current image
+                } elseif (is_array($conf) && ! empty($conf['editor'])) {
+                    $entry[$col] = (new Editor($col))->sanitize((string) ($row[$col] ?? ''));
                 } else {
                     $entry[$col] = trim((string) ($row[$col] ?? ''));
                 }
 
-                if ($entry[$col] !== '') {
+                if ($entry[$col] != '') {
                     $empty = false;
                 }
             }
@@ -110,18 +110,9 @@ class Repeater extends Field
         $model->{$this->column()} = array_values($clean);
     }
 
-    // move an uploaded image under public/uploads/{dir}, return its web path
-    protected function storeImage($file, string $dir): string
+    protected function storeImage($file, string $dir, ?string $attribute = null): string
     {
-        $dir = trim($dir, '/');
-        $target = public_path('uploads/'.$dir);
-        if (! is_dir($target)) {
-            mkdir($target, 0755, true);
-        }
-        $filename = date('Ymd').'-'.bin2hex(random_bytes(6)).'.'.$file->getClientOriginalExtension();
-        $file->move($target, $filename);
-
-        return '/uploads/'.$dir.'/'.$filename;
+        return Upload::publicImage($file, 'uploads/'.trim($dir, '/'), $attribute ?? $this->name);
     }
 
     public function indexValue(Model $model): string

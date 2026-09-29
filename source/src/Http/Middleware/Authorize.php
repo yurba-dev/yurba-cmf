@@ -15,14 +15,18 @@ class Authorize
         $user = Auth::guard(Yurba::guard())->user();
 
         if (! $user) {
-            return redirect()->route('yurba.login');
+            // fetch callers need a status, not the login page; guest() keeps the url so login returns there
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['message' => __('Your session has expired. Sign in again.')], 401);
+            }
+
+            return redirect()->guest(route('yurba.login'));
         }
 
         if (! Yurba::authorize($user)) {
             abort(403, __('You do not have access to this panel.'));
         }
 
-        // apply the selected UI language for the request
         app()->setLocale(Yurba::locale());
 
         return $next($request);

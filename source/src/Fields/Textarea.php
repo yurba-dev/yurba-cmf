@@ -12,7 +12,7 @@ class Textarea extends Field
     public function __construct(string $name, ?string $label = null)
     {
         parent::__construct($name, $label);
-        $this->onIndex = false; // long text stays off the table by default
+        $this->onIndex = false;
     }
 
     public function rows(int $rows): static

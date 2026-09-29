@@ -4,9 +4,9 @@ namespace Yurba\Cmf\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Yurba\Cmf\Support\Upload;
 
-// inline image uploads from the editor, moved under public/{dir}, returns { url }.
-// svg is refused on purpose: it can carry scripts and become stored xss.
+// svg is refused on purpose: it can carry scripts and become stored xss
 class UploadController extends Controller
 {
     public function store(Request $request): JsonResponse
@@ -26,7 +26,10 @@ class UploadController extends Controller
             mkdir($target, 0755, true);
         }
 
-        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+        $ext = Upload::safeExtension($file, array_map('trim', explode(',', strtolower($mimes))));
+        if ($ext === null) {
+            return response()->json(['message' => __('validation.mimes', ['attribute' => 'file', 'values' => $mimes])], 422);
+        }
         $name = date('Ymd').'-'.bin2hex(random_bytes(8)).'.'.$ext;
         $file->move($target, $name);
 

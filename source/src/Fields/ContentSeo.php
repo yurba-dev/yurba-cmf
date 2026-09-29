@@ -5,12 +5,9 @@ namespace Yurba\Cmf\Fields;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
-// SEO block for a ContentPage - stored inline in the page's content json as
-// flat seo_* keys (read on the frontend via content($pageKey, 'seo_title')).
-// SeoField instead uses the polymorphic yurba_seo table for eloquent records.
+// stored as flat seo_* keys in the page's content json; SeoField uses the yurba_seo table instead
 class ContentSeo extends Field
 {
-    // block field => the flat content key it is stored under
     protected const KEYS = [
         'meta_title' => 'seo_title',
         'meta_description' => 'seo_description',
@@ -29,7 +26,6 @@ class ContentSeo extends Field
         return new static($name, $label);
     }
 
-    // load every flat seo_* key from the stored content onto the record
     public function hydrate(Model $record, array $stored): void
     {
         foreach (static::KEYS as $col) {
@@ -37,7 +33,6 @@ class ContentSeo extends Field
         }
     }
 
-    /** @return array<string, mixed> the block's current values */
     public function formValue(Model $model): mixed
     {
         $old = old($this->name);

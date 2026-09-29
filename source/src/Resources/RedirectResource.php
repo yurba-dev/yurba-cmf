@@ -10,7 +10,6 @@ use Yurba\Cmf\Filters\BooleanFilter;
 use Yurba\Cmf\Filters\SelectFilter;
 use Yurba\Cmf\Redirects\Redirect;
 
-// built-in crud for url redirects; auto-registered by Panel when yurba.redirects.enabled
 class RedirectResource extends Resource
 {
     public static string $model = Redirect::class;
@@ -54,9 +53,15 @@ class RedirectResource extends Resource
                 ->help('Incoming path. The leading slash, host and query string are ignored, so “old/page”, “/old/page/” and “old/page?x=1” all match.'),
 
             Text::make('to', 'To')->searchable()
-                ->rules('required|string|max:2048')
+                ->rules(['required', 'string', 'max:2048', function (string $attribute, mixed $value, \Closure $fail) {
+                    $request = request();
+                    if (is_string($value) && $request->boolean('enabled', true)
+                        && Redirect::wouldLoop((string) $request->input('from'), $value, $request->getHost(), $request->route('id'))) {
+                        $fail(__('This redirect would lead back to itself.'));
+                    }
+                }])
                 ->placeholder('/new/page or https://example.com')
-                ->help('Where to send visitors — an internal path (/new/page) or an absolute URL.'),
+                ->help('Where to send visitors: an internal path (/new/page) or an absolute URL.'),
 
             Select::make('status')->options(self::STATUSES)->default(301)
                 ->rules('required|in:301,302,307,308')

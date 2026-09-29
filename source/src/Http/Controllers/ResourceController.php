@@ -4,10 +4,12 @@ namespace Yurba\Cmf\Http\Controllers;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yurba\Cmf\Facades\Yurba;
 use Yurba\Cmf\Fields\Field;
 use Yurba\Cmf\Resources\Resource;
 use Yurba\Cmf\Revisions\Revision;
+use Yurba\Cmf\Seo\Seo;
 
 class ResourceController extends Controller
 {
@@ -27,8 +29,8 @@ class ResourceController extends Controller
         $records = $res->indexQuery($request)->paginate($res->perPage())->withQueryString();
 
         $search = trim((string) $request->query('q', ''));
-        $sort = $request->query('sort');
-        $dir = $request->query('dir') === 'desc' ? 'desc' : 'asc';
+        $sort = is_string($request->query('sort')) ? $request->query('sort') : null;
+        $dir = $request->query('dir') == 'desc' ? 'desc' : 'asc';
 
         return view('yurba::resource.index', compact('res', 'records', 'search', 'sort', 'dir'));
     }
@@ -75,8 +77,6 @@ class ResourceController extends Controller
         $record = $res->query()->findOrFail($id);
         abort_unless($res->canUpdate(Yurba::user(), $record), 403);
 
-        // ?revision=N loads that snapshot's values into the edit form so it can be
-        // tweaked and re-saved; saving records it as the newest revision (update()).
         $loadedRevision = null;
         if ($res->hasRevisions() && $request->filled('revision')) {
             $loadedRevision = Revision::query()
@@ -92,7 +92,7 @@ class ResourceController extends Controller
         }
 
         $locale = $this->activeLocale($res, $request);
-        if ($locale !== null && $locale !== Yurba::defaultLocale()) {
+        if ($locale !== null && $locale != Yurba::defaultLocale()) {
             $this->applyLocale($res, $record, $locale);
         }
 
@@ -104,7 +104,6 @@ class ResourceController extends Controller
         ]);
     }
 
-    // roll back to a previous revision (itself recorded as a new revision)
     public function restoreRevision(string $resource, int|string $id, int|string $revision)
     {
         $res = $this->resolve($resource);
@@ -140,26 +139,26 @@ class ResourceController extends Controller
         $locale = $this->activeLocale($res, $request);
 
         $rules = $this->rulesFor($fields);
-        if ($locale !== null && $locale !== Yurba::defaultLocale()) {
+        if ($locale !== null && $locale != Yurba::defaultLocale()) {
             $rules = $this->relaxTranslatable($rules, $fields);
         }
         $request->validate($rules);
 
-        if ($locale === null || $locale === Yurba::defaultLocale()) {
+        if ($locale === null || $locale == Yurba::defaultLocale()) {
             $this->fill($request, $fields, $record);
             $record->save();
             $this->afterSave($request, $res, $record);
         } else {
-            $this->fillLocalized($request, $fields, $record, $locale);
+            $this->fillLocalized($request, $fields, $record, $locale, $res);
         }
 
         if ($record->wasChanged()) {
             $res->recordRevision($record, Yurba::user());
         }
 
-        if ($request->input('_after') === 'edit') {
+        if ($request->input('_after') == 'edit') {
             $params = [$res->uriKey(), $record->getKey()];
-            if ($locale !== null && $locale !== Yurba::defaultLocale()) {
+            if ($locale !== null && $locale != Yurba::defaultLocale()) {
                 $params['locale'] = $locale;
             }
 
@@ -180,6 +179,9 @@ class ResourceController extends Controller
         abort_unless($res->canDelete(Yurba::user(), $record), 403);
 
         $record->delete();
+        if (! $res->usesSoftDeletes()) {
+            $this->purgeSideRows($record);
+        }
 
         return back()->with('yurba_status', __(':name deleted.', ['name' => $res->label()]));
     }
@@ -206,6 +208,7 @@ class ResourceController extends Controller
         abort_unless($res->canDelete(Yurba::user(), $record), 403);
 
         $record->forceDelete();
+        $this->purgeSideRows($record);
 
         return back()->with('yurba_status', __(':name permanently deleted.', ['name' => $res->label()]));
     }
@@ -213,6 +216,8 @@ class ResourceController extends Controller
     public function bulk(Request $request, string $resource)
     {
         $res = $this->resolve($resource);
+        $user = Yurba::user();
+        abort_unless($res->canViewAny($user), 403);
 
         $action = (string) $request->input('action');
         $actions = $res->bulkActions();
@@ -225,19 +230,25 @@ class ResourceController extends Controller
 
         $records = $res->query()->whereKey($ids)->get();
 
-        if ($action === 'delete') {
-            $user = Yurba::user();
+        if ($action == 'delete') {
             $records = $records->filter(fn ($record) => $res->canDelete($user, $record))->values();
-            $records->each->delete();
+            foreach ($records as $record) {
+                $record->delete();
+                if (! $res->usesSoftDeletes()) {
+                    $this->purgeSideRows($record);
+                }
+            }
         } else {
-            $res->runBulk($action, $records);
+            $records = $records->filter(fn ($record) => $res->canUpdate($user, $record))->values();
+            if ($records->isNotEmpty()) {
+                $res->runBulk($action, $records);
+            }
         }
 
-        return back()->with('yurba_status', __(':count :items — :action.', ['count' => $records->count(), 'items' => $res->pluralLabel(), 'action' => $actions[$action]]));
+        return back()->with('yurba_status', __(':count :items - :action.', ['count' => $records->count(), 'items' => $res->pluralLabel(), 'action' => $actions[$action]]));
     }
 
-    // persist a drag-and-drop reorder: writes 1..N into the position column in the
-    // order the ids arrive (only for resources that declare reorderable())
+    // the posted ids are only the visible rows: they swap among the slots they held, other rows keep theirs, then all are renumbered 1..N
     public function reorder(Request $request, string $resource)
     {
         $res = $this->resolve($resource);
@@ -245,12 +256,42 @@ class ResourceController extends Controller
         abort_unless($column, 404);
         abort_unless($res->canUpdate(Yurba::user(), $res->newModel()), 403);
 
-        $ids = array_values(array_filter((array) $request->input('ids', [])));
-        foreach ($ids as $pos => $id) {
-            $res->query()->whereKey($id)->update([$column => $pos + 1]);
+        $key = $res->newModel()->getKeyName();
+        $base = fn () => $res->usesSoftDeletes() ? $res->query()->withTrashed() : $res->query();
+
+        $default = $res->defaultSort();
+        $desc = $default && $default[0] == $column && strtolower($default[1] ?? 'asc') == 'desc';
+
+        $current = [];
+        foreach ($base()->reorder()->orderBy($column, $desc ? 'desc' : 'asc')->orderBy($key)->get([$key, $column]) as $row) {
+            $current[(string) $row->getKey()] = $row->{$column};
         }
 
-        return response()->json(['ok' => true, 'count' => count($ids)]);
+        $moved = [];
+        foreach ((array) $request->input('ids', []) as $id) {
+            $id = (string) $id;
+            if (isset($current[$id]) && ! isset($moved[$id])) {
+                $moved[$id] = true;
+            }
+        }
+
+        $queue = array_keys($moved);
+        $order = [];
+        foreach (array_keys($current) as $id) {
+            $order[] = isset($moved[$id]) ? (string) array_shift($queue) : (string) $id;
+        }
+
+        $total = count($order);
+        DB::transaction(function () use ($order, $current, $base, $column, $desc, $total) {
+            foreach ($order as $i => $id) {
+                $position = $desc ? $total - $i : $i + 1;
+                if ((string) $current[$id] != (string) $position) {
+                    $base()->whereKey($id)->update([$column => $position]);
+                }
+            }
+        });
+
+        return response()->json(['ok' => true, 'count' => count($moved)]);
     }
 
     public function action(Request $request, string $resource)
@@ -260,7 +301,9 @@ class ResourceController extends Controller
         $action = (string) $request->input('action');
         abort_unless(isset($res->rowActions()[$action]), 404);
 
-        $record = $res->query()->findOrFail($request->input('id'));
+        $id = $request->input('id');
+        abort_unless(is_scalar($id), 404);
+        $record = $res->query()->findOrFail($id);
         abort_unless($res->canUpdate(Yurba::user(), $record), 403);
 
         // resolve the label against the record's current state before mutating
@@ -268,11 +311,9 @@ class ResourceController extends Controller
         $label = is_array($def) ? ($def['label'] ?? $action) : $def;
         $res->runAction($action, $record);
 
-        return back()->with('yurba_status', __(':label — done.', ['label' => $label]));
+        return back()->with('yurba_status', __(':label - done.', ['label' => $label]));
     }
 
-    // form fields for this request: not virtual, and show-when condition satisfied
-    /** @return Field[] */
     protected function activeFields(Resource $res, Request $request): array
     {
         $input = $request->all();
@@ -283,10 +324,6 @@ class ResourceController extends Controller
         ));
     }
 
-    /**
-     * @param  Field[]  $fields
-     * @return array<string, array>
-     */
     protected function rulesFor(array $fields): array
     {
         $rules = [];
@@ -300,7 +337,6 @@ class ResourceController extends Controller
     }
 
     // read-only fields are skipped so their stored value stays authoritative
-    /** @param  Field[]  $fields */
     protected function fill(Request $request, array $fields, $record): void
     {
         foreach ($fields as $field) {
@@ -318,7 +354,7 @@ class ResourceController extends Controller
             if ($field->translatable && isset($rules[$field->name])) {
                 $rules[$field->name] = array_values(array_filter(
                     $rules[$field->name],
-                    fn ($rule) => ! is_string($rule) || $rule !== 'required'
+                    fn ($rule) => ! is_string($rule) || $rule != 'required'
                 ));
             }
         }
@@ -326,7 +362,6 @@ class ResourceController extends Controller
         return $rules;
     }
 
-    // the language being edited, or null when the resource is single-language
     protected function activeLocale(Resource $res, Request $request): ?string
     {
         if (! $res->isMultilingual()) {
@@ -338,7 +373,6 @@ class ResourceController extends Controller
         return isset(Yurba::contentLocales()[$requested]) ? $requested : Yurba::defaultLocale();
     }
 
-    // load a locale's stored values onto translatable fields for the edit form
     protected function applyLocale(Resource $res, Model $record, string $locale): void
     {
         if (! method_exists($record, 'localeValues')) {
@@ -358,10 +392,7 @@ class ResourceController extends Controller
         }
     }
 
-    // save into a non-default locale: shared fields hit the base row, translatable
-    // fields are stored per-locale
-    /** @param  Field[]  $fields */
-    protected function fillLocalized(Request $request, array $fields, Model $record, string $locale): void
+    protected function fillLocalized(Request $request, array $fields, Model $record, string $locale, ?Resource $res = null): void
     {
         $translations = [];
         foreach ($fields as $field) {
@@ -369,7 +400,7 @@ class ResourceController extends Controller
                 continue;
             }
             if ($field->translatable) {
-                $translations[$field->name] = $request->input($field->name);
+                $translations[$field->name] = $this->localizedValue($request, $field, $record, $locale);
             } else {
                 $field->fill($request, $record);
             }
@@ -377,8 +408,10 @@ class ResourceController extends Controller
 
         $record->save();
 
-        foreach ($fields as $field) {
-            if (! $field->readonly && ! $field->translatable) {
+        // virtual fields (seo, m2m) are not in $fields but still persist here
+        $input = $request->all();
+        foreach ($res ? $res->formFields() : $fields as $field) {
+            if (! $field->readonly && ! $field->translatable && $field->passesCondition($input)) {
                 $field->afterSave($request, $record);
             }
         }
@@ -390,7 +423,35 @@ class ResourceController extends Controller
         }
     }
 
-    // run every condition-passing field's afterSave once saved (e.g. m2m pivot sync)
+    // fill() runs on a detached copy so the base row keeps its default-locale value
+    protected function localizedValue(Request $request, Field $field, Model $record, string $locale): mixed
+    {
+        $column = $field->column();
+        $current = method_exists($record, 'translationValue') ? $record->translationValue($locale, $field->name) : null;
+
+        $tmp = $record->newInstance([], true);
+        $tmp->setRawAttributes([$record->getKeyName() => $record->getKey(), $column => $current]);
+        $field->fill($request, $tmp);
+
+        $value = $tmp->getAttributes()[$column] ?? null;
+
+        return is_array($value) || is_object($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : $value;
+    }
+
+    // seo and revision rows are polymorphic with no db cascade (translations clean up in HasTranslations)
+    protected function purgeSideRows(Model $record): void
+    {
+        $type = $record->getMorphClass();
+        $id = $record->getKey();
+
+        try {
+            Seo::query()->where('seoable_type', $type)->where('seoable_id', $id)->delete();
+            Revision::query()->where('revisionable_type', $type)->where('revisionable_id', $id)->delete();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     protected function afterSave(Request $request, Resource $res, $record): void
     {
         $input = $request->all();

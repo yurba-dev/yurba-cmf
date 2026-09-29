@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yurba\Cmf\Facades\Yurba;
 
-// resolve the frontend content locale from the {locale} route slug
 class SetLocale
 {
     public function handle(Request $request, Closure $next): Response

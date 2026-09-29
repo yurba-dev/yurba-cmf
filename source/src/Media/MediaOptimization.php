@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * one image-optimization event, shown in the Optimization log screen.
- *
  * @property string $path
  * @property string $source
  * @property string $status
@@ -41,13 +39,12 @@ class MediaOptimization extends Model
         'created_at' => 'datetime',
     ];
 
-    // enabled unless explicitly turned off
     public static function enabled(): bool
     {
         return (bool) config('yurba.media.log', true);
     }
 
-    // record one processed image; best-effort, never breaks the caller.
+    // best-effort: never breaks the caller
     public static function record(array $attributes): void
     {
         if (! static::enabled()) {
@@ -65,13 +62,12 @@ class MediaOptimization extends Model
         }
     }
 
-    // derive [status, reason] from the source bytes and outcome.
     public static function classify(string $origData, bool $optimizeEnabled, bool $optimized, bool $thumbnailed): array
     {
         $i = ImageOptimizer::inspect($origData);
 
         if (! $i['raster']) {
-            return [self::STATUS_SKIPPED, 'Not a raster image — GD cannot optimize it.'];
+            return [self::STATUS_SKIPPED, 'Not a raster image, GD cannot optimize it.'];
         }
 
         if (! $optimizeEnabled) {
@@ -92,7 +88,6 @@ class MediaOptimization extends Model
         return [self::STATUS_UNCHANGED, null];
     }
 
-    // percentage the original shrank by (0 when it grew or is unknown)
     public function savingsPercent(): int
     {
         if ($this->orig_size <= 0 || $this->new_size <= 0 || $this->new_size >= $this->orig_size) {
@@ -102,19 +97,17 @@ class MediaOptimization extends Model
         return (int) round(100 - ($this->new_size / $this->orig_size * 100));
     }
 
-    // how many recent events to retain (0 or less = unlimited)
+    // 0 or less = unlimited
     public static function keep(): int
     {
         return (int) config('yurba.media.log_keep', 1000);
     }
 
-    // wipe the whole log
     public static function clear(): void
     {
         static::query()->delete();
     }
 
-    // keep the table bounded to the newest keep() rows.
     protected static function prune(): void
     {
         $keep = static::keep();

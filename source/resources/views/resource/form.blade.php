@@ -6,16 +6,14 @@
 
 @section('content')
     @php
-        // Group form fields by tab (preserving order); a blank tab is the implicit
-        // "General" tab. Grouping is purely presentational - the flat field list
-        // still drives validation and persistence.
+        // tabs are presentational only; the flat field list still drives validation and persistence
         $formFields = $res->formFields();
         $tabs = [];
         foreach ($formFields as $f) {
             $tabs[$f->tab ?? ''][] = $f;
         }
         $tabNames = array_keys($tabs);
-        $hasTabs = count($tabNames) > 1 || (count($tabNames) === 1 && $tabNames[0] !== '');
+        $hasTabs = count($tabNames) > 1 || (count($tabNames) == 1 && $tabNames[0] != '');
     @endphp
 
     @if($editing && $res->hasRevisions())
@@ -30,7 +28,7 @@
                     <select id="y-revision-select" name="revision" class="y-input" onchange="this.form.submit()" @if($uiSelect) data-yurba-select @endif>
                         <option value="">{{ __('Current (latest)') }}</option>
                         @foreach($revisions as $rev)
-                            <option value="{{ $rev->id }}" @selected(($loadedRevision ?? null) && $loadedRevision->id === $rev->id)>{{ $rev->created_at?->format('Y-m-d H:i') }} · {{ $rev->user_name ?? '—' }}</option>
+                            <option value="{{ $rev->id }}" @selected(($loadedRevision ?? null) && $loadedRevision->id == $rev->id)>{{ $rev->created_at?->format('Y-m-d H:i') }} · {{ $rev->user_name ?? '-' }}</option>
                         @endforeach
                     </select>
                     <noscript><button type="submit" class="y-btn y-btn__ghost y-btn__xs">{{ __('Load') }}</button></noscript>
@@ -51,8 +49,8 @@
         <div class="y-locale-bar">
             <div class="y-locale-bar__tabs">
                 @foreach(\Yurba\Cmf\Facades\Yurba::contentLocales() as $code => $def)
-                    <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}?locale={{ $code }}"
-                       class="y-locale-bar__tab {{ $code === $activeLocale ? 'is-active' : '' }}">{{ $def['label'] }}</a>
+                    <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey(), 'locale' => $code]) }}"
+                       class="y-locale-bar__tab {{ $code == $activeLocale ? 'is-active' : '' }}">{{ $def['label'] }}</a>
                 @endforeach
             </div>
             <span class="y-locale-bar__note">{{ __('Shared fields apply to all languages.') }}</span>
@@ -71,13 +69,13 @@
         @if($hasTabs)
             <div class="y-tabs" role="tablist">
                 @foreach($tabNames as $i => $name)
-                    <button type="button" class="y-tabs__tab {{ $i === 0 ? 'is-active' : '' }}" data-tab-target="y-tab-{{ $i }}">
-                        {{ $name !== '' ? $name : __('General') }}
+                    <button type="button" class="y-tabs__tab {{ $i == 0 ? 'is-active' : '' }}" data-tab-target="y-tab-{{ $i }}">
+                        {{ $name != '' ? $name : __('General') }}
                     </button>
                 @endforeach
             </div>
             @foreach($tabNames as $i => $name)
-                <div class="y-tabs__panel {{ $i === 0 ? 'is-active' : '' }}" id="y-tab-{{ $i }}">
+                <div class="y-tabs__panel {{ $i == 0 ? 'is-active' : '' }}" id="y-tab-{{ $i }}">
                     @include('yurba::resource._fields', ['fields' => $tabs[$name], 'record' => $record])
                 </div>
             @endforeach

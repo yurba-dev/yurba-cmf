@@ -10,26 +10,18 @@ use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Yurba\Cmf\Fields\Field;
-use Yurba\Cmf\Filters\Filter;
 use Yurba\Cmf\Revisions\Revision;
 
-// a CRUD resource: declare a model and fields, the panel generates the list,
-// create/edit forms, validation and persistence.
 abstract class Resource
 {
-    /** @var class-string<Model> */
     public static string $model;
 
-    /** @return Field[] */
     abstract public function fields(): array;
 
-    /** @return Filter[] */
     public function filters(): array
     {
         return [];
     }
-
-    // --- identity ---
 
     public function model(): string
     {
@@ -43,7 +35,6 @@ abstract class Resource
         return new $class;
     }
 
-    // uses SoftDeletes? (enables the trash/restore ui)
     public function usesSoftDeletes(): bool
     {
         return in_array(
@@ -63,19 +54,16 @@ abstract class Resource
         return Str::plural($this->label());
     }
 
-    // url segment, e.g. "job-applications"
     public function uriKey(): string
     {
         return Str::plural(Str::kebab(class_basename(static::$model)));
     }
 
-    // optional sidebar icon (raw html); null hides it
     public function icon(): ?string
     {
         return null;
     }
 
-    // human title for a single record (heading on edit)
     public function title(Model $record): string
     {
         foreach (['title', 'name', 'email'] as $attr) {
@@ -87,18 +75,13 @@ abstract class Resource
         return '#'.$record->getKey();
     }
 
-    // --- query / capabilities ---
-
-    // enable drag-and-drop row reordering in the list; return the integer column
-    // that stores the position (e.g. 'sort'), or null to disable
+    // the integer column storing the position (e.g. 'sort') enables drag-and-drop reordering; null disables it
     public function reorderable(): ?string
     {
         return null;
     }
 
-    // default list ordering when no ?sort is applied, as [column, direction];
-    // a reorderable resource defaults to its position column ascending
-    /** @return array{0: string, 1?: string}|null */
+    // [column, 'asc'|'desc']
     public function defaultSort(): ?array
     {
         return $this->reorderable() ? [$this->reorderable(), 'asc'] : null;
@@ -114,19 +97,18 @@ abstract class Resource
     {
         $query = $this->query();
 
-        // soft-delete scope: active / only trashed / all
         if ($this->usesSoftDeletes()) {
             $trashed = $request->query('trashed');
-            if ($trashed === 'only') {
+            if ($trashed == 'only') {
                 $query->onlyTrashed();
-            } elseif ($trashed === 'with') {
+            } elseif ($trashed == 'with') {
                 $query->withTrashed();
             }
         }
 
         $search = trim((string) $request->query('q', ''));
         $columns = $this->searchableColumns();
-        if ($search !== '' && $columns) {
+        if ($search != '' && $columns) {
             $query->where(function (Builder $q) use ($columns, $search) {
                 foreach ($columns as $col) {
                     $q->orWhere($col, 'like', "%{$search}%");
@@ -134,7 +116,6 @@ abstract class Resource
             });
         }
 
-        // structured filters (f[key]=value)
         $active = (array) $request->query('f', []);
         foreach ($this->filters() as $filter) {
             $value = $active[$filter->key] ?? null;
@@ -148,11 +129,16 @@ abstract class Resource
             array_filter($this->indexFields(), fn (Field $f) => $f->sortable)
         );
         $sort = $request->query('sort');
-        $dir = $request->query('dir') === 'desc' ? 'desc' : 'asc';
+        $dir = $request->query('dir') == 'desc' ? 'desc' : 'asc';
         if ($sort && in_array($sort, $sortable, true)) {
-            $query->orderBy($sort, $dir);
+            // key as tiebreaker, or rows with equal values can repeat or vanish across pages
+            $query->orderBy($sort, $dir)->orderBy($this->newModel()->getKeyName(), $dir);
         } elseif ($default = $this->defaultSort()) {
             $query->orderBy($default[0], $default[1] ?? 'asc');
+            // stable ties, so the list matches the order reorder() renumbers from
+            if ($default[0] == $this->reorderable()) {
+                $query->orderBy($this->newModel()->getKeyName());
+            }
         } else {
             $query->orderByDesc($this->newModel()->getKeyName());
         }
@@ -165,10 +151,7 @@ abstract class Resource
         return app('yurba.cmf')->perPage();
     }
 
-    // --- authorization ---
-    // each gate defers to a model Policy ability if one is defined (viewAny/view/
-    // create/update/delete), else override here. with neither, everything is
-    // allowed - access is still gated by the panel's entry gate.
+    // each gate defers to a model Policy ability when defined; with neither, everything is allowed and only the panel entry gate applies
 
     public function canViewAny($user = null): bool
     {
@@ -222,8 +205,7 @@ abstract class Resource
         return false;
     }
 
-    // custom per-row actions next to Edit/Delete, keyed by action key (dispatched
-    // to runAction()). $record is null when only the set of keys is needed.
+    // dispatched to runAction(); $record is null when only the set of keys is needed
     /** @return array<string, string|array{label: string, icon?: string}> */
     public function rowActions(?Model $record = null): array
     {
@@ -234,20 +216,16 @@ abstract class Resource
     {
     }
 
-    // --- revisions ---
-
     public function hasRevisions(): bool
     {
         return false;
     }
 
-    // older revisions beyond this are pruned
     public function revisionsLimit(): int
     {
         return 25;
     }
 
-    // snapshot current attributes as a revision (and prune)
     public function recordRevision(Model $model, mixed $user = null): void
     {
         if (! $this->hasRevisions()) {
@@ -270,21 +248,13 @@ abstract class Resource
         $q()->whereNotIn('id', $keep)->delete();
     }
 
-    // --- publishing (drafts / scheduling) ---
-
-    // declare the publish workflow so the scheduler can promote due records and
-    // the panel can build preview links, or null for none:
-    //   ['status' => 'status', 'date' => 'published_at',
-    //    'draft' => 'draft', 'scheduled' => 'scheduled', 'published' => 'publish']
-    /** @return array<string, string>|null */
+    // e.g. ['status' => 'status', 'date' => 'published_at', 'draft' => 'draft', 'scheduled' => 'scheduled', 'published' => 'publish']
     public function publishing(): ?array
     {
         return null;
     }
 
-    // frontend route to preview on, as [name, params]; the panel wraps it in a
-    // temporary signed url the frontend allows via hasValidSignature()
-    /** @return array{0: string, 1?: array}|null */
+    // [route name, params]; the panel wraps it in a temporary signed url the frontend allows via hasValidSignature()
     public function previewRoute(Model $record): ?array
     {
         return null;
@@ -302,7 +272,6 @@ abstract class Resource
         );
     }
 
-    /** @return SupportCollection<int, Revision> newest first */
     public function revisions(Model $model): SupportCollection
     {
         return Revision::query()
@@ -314,12 +283,12 @@ abstract class Resource
     }
 
     // pk + every field's column, so an export round-trips back through import
-    /** @return string[] */
     public function exportColumns(): array
     {
-        $columns = [$this->newModel()->getKeyName()];
+        $model = $this->newModel();
+        $columns = [$model->getKeyName()];
         foreach ($this->fields() as $field) {
-            if ($field->virtual) {
+            if ($field->virtual || ! $field->exportable || $field->isSensitive($model)) {
                 continue;
             }
             $col = $field->column();
@@ -331,9 +300,7 @@ abstract class Resource
         return $columns;
     }
 
-    // [key => label]; non-empty enables the row checkboxes + bulk bar. "delete"
-    // is handled natively, any other key is dispatched to runBulk().
-    /** @return array<string, string> */
+    // non-empty enables the row checkboxes and bulk bar; "delete" is native, other keys go to runBulk()
     public function bulkActions(): array
     {
         return [];
@@ -343,21 +310,23 @@ abstract class Resource
     {
     }
 
-    // --- derived field sets ---
-
-    /** @return Field[] */
     public function indexFields(): array
     {
         return array_values(array_filter($this->fields(), fn (Field $f) => $f->onIndex));
     }
 
-    /** @return Field[] */
+    public function detailFields(?Model $record = null): array
+    {
+        $model = $record ?? $this->newModel();
+
+        return array_values(array_filter($this->fields(), fn (Field $f) => $f->onDetail && ! $f->isSensitive($model)));
+    }
+
     public function formFields(): array
     {
         return array_values(array_filter($this->fields(), fn (Field $f) => $f->onForm));
     }
 
-    /** @return string[] names of the form fields declared translatable */
     public function translatableFields(): array
     {
         return array_values(array_map(
@@ -366,13 +335,11 @@ abstract class Resource
         ));
     }
 
-    // does this resource edit per-language values (multilingual on + a translatable field)
     public function isMultilingual(): bool
     {
-        return \Yurba\Cmf\Facades\Yurba::multilangEnabled() && $this->translatableFields() !== [];
+        return \Yurba\Cmf\Facades\Yurba::multilangEnabled() && $this->translatableFields() != [];
     }
 
-    /** @return string[] searchable column names */
     public function searchableColumns(): array
     {
         return array_values(array_map(
@@ -381,7 +348,6 @@ abstract class Resource
         ));
     }
 
-    /** @return array<string, array> validation rules keyed by field name */
     public function validationRules(): array
     {
         $rules = [];

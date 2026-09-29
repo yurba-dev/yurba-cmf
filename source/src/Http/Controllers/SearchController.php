@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Yurba\Cmf\Facades\Yurba;
 
-// global search across every resource's searchable columns (sidebar search tab)
 class SearchController extends Controller
 {
     public function page(Request $request)
@@ -17,7 +16,6 @@ class SearchController extends Controller
         return view('yurba::search', compact('term', 'groups'));
     }
 
-    /** @return array<int, array{label: string, icon: ?string, count: int, items: array}> */
     protected function results(string $term, int $limit): array
     {
         $groups = [];

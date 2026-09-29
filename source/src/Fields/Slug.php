@@ -7,9 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-// editable slug/permalink. off the index by default; a blank input lets the
-// model's Sluggable trait derive it (create) or keeps the current slug (edit).
-// the public url is base + slug, or a custom permalink() resolver.
 class Slug extends Field
 {
     public ?string $baseUrl = null;
@@ -19,7 +16,7 @@ class Slug extends Field
     public function __construct(string $name, ?string $label = null)
     {
         parent::__construct($name, $label);
-        $this->onIndex = false; // keep the permalink out of list tables by default
+        $this->onIndex = false;
     }
 
     public function baseUrl(string $url): static
@@ -29,7 +26,6 @@ class Slug extends Field
         return $this;
     }
 
-    // custom resolver: fn (Model $record): string
     public function permalink(Closure $resolver): static
     {
         $this->permalinkUsing = $resolver;
@@ -54,12 +50,11 @@ class Slug extends Field
         return null;
     }
 
-    // blank is left for Sluggable to derive (create) or keeps the current slug
-    // (edit); a provided value is normalised and made unique
+    // blank: Sluggable derives it on create, the current slug stays on edit; a given value is normalised and made unique
     public function fill(Request $request, Model $model): void
     {
         $value = trim((string) $request->input($this->name, ''));
-        if ($value === '') {
+        if ($value == '') {
             return;
         }
 
@@ -69,7 +64,7 @@ class Slug extends Field
     protected function makeUnique(Model $model, string $slug): string
     {
         $column = $this->column();
-        $base = $slug !== '' ? $slug : $model->getKeyName();
+        $base = $slug != '' ? $slug : $model->getKeyName();
         $slug = $base;
         $suffix = 1;
 

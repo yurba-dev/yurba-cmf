@@ -4,13 +4,11 @@ namespace Yurba\Cmf\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 
-// dropdown filter: one option matched with where(); also serves fks (id => label)
 class SelectFilter extends Filter
 {
-    /** @var array<int|string, string> value => label */
+    // value => label
     protected array $options = [];
 
-    /** @param array<int|string, string> $options */
     public function options(array $options): static
     {
         $this->options = $options;
@@ -18,10 +16,14 @@ class SelectFilter extends Filter
         return $this;
     }
 
-    /** @return array<int|string, string> */
     public function getOptions(): array
     {
         return $this->options;
+    }
+
+    public function isActive(mixed $value): bool
+    {
+        return is_scalar($value) && $value !== '';
     }
 
     public function apply(Builder $query, mixed $value): void

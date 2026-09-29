@@ -1,4 +1,3 @@
-{{-- Renders a list of fields, grouped by their optional section heading. --}}
 @php
     $bySection = [];
     foreach ($fields as $f) {
@@ -7,7 +6,7 @@
 @endphp
 
 @foreach($bySection as $sectionName => $sectionFields)
-    @if($sectionName !== '')
+    @if($sectionName != '')
         <h3 class="y-section__title">{{ $sectionName }}</h3>
     @endif
 

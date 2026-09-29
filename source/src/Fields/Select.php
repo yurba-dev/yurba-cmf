@@ -7,14 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Select extends Field
 {
     // bump on yurba-ui update
-    public const UI_ASSET_VERSION = '1.0.0';
+    public const UI_ASSET_VERSION = '1.0.3';
 
-    /** @var array<string|int, string> value => label */
+    // value => label
     public array $options = [];
 
     public bool $nullable = false;
 
-    /** @param array<string|int, string> $options value => label (e.g. [0 => 'Draft', 1 => 'Published']) */
     public function options(array $options): static
     {
         $this->options = $options;

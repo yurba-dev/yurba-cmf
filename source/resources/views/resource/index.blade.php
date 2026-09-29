@@ -7,7 +7,7 @@
 @section('content')
     @php($fields = $res->indexFields())
     @php($bulk = $res->bulkActions())
-    @php($reorder = $res->reorderable() && ! request()->filled('sort'))
+    @php($reorder = $res->reorderable() && ! request()->filled('sort') && ($res->defaultSort()[0] ?? null) == $res->reorderable())
     @php($colspan = count($fields) + 1 + (count($bulk) ? 1 : 0) + ($reorder ? 1 : 0))
 
     @php($filters = $res->filters())
@@ -16,13 +16,12 @@
     @php($ui = (bool) config('yurba.ui.select', true))
     @php($hasFilterUi = count($filters) > 0 || $res->usesSoftDeletes())
     @php($activeCount = collect($filterValues)->flatten()->filter(fn ($v) => filled($v))->count() + (filled($trashedMode) ? 1 : 0))
-    @php($hasActive = $search !== '' || $activeCount > 0)
+    @php($hasActive = $search != '' || $activeCount > 0)
 
     @php($indexUrl = route('yurba.resource.index', $res->uriKey()))
 
     <div class="y-listbar" data-ui="{{ $ui ? '1' : '0' }}">
         <div class="y-toolbar">
-            {{-- Search: its own form; preserves current filters/sort as hidden inputs. --}}
             <form method="GET" action="{{ $indexUrl }}" class="y-toolbar__search">
                 <input type="search" name="q" value="{{ $search }}" class="y-filters__search"
                        placeholder="{{ __('Search :items…', ['items' => \Illuminate\Support\Str::lower($res->pluralLabel())]) }}">
@@ -38,7 +37,7 @@
 
             <span class="y-toolbar__actions">
                 @if($res->canExport())
-                    <a href="{{ route('yurba.resource.export', array_merge(['resource' => $res->uriKey()], request()->query())) }}"
+                    <a href="{{ route('yurba.resource.export', array_merge(request()->query(), ['resource' => $res->uriKey()])) }}"
                        class="y-btn y-btn__ghost">{{ __('Export CSV') }}</a>
                 @endif
                 @if($res->canImport())
@@ -51,8 +50,7 @@
         </div>
 
         @if($hasFilterUi)
-            {{-- Filter form: self-contained so it still submits after YurbaUI.Dropdown
-                 relocates it into a body-mounted menu. Carries q/sort/dir as hidden. --}}
+            {{-- self-contained so it still submits after YurbaUI.Dropdown moves it into a body-mounted menu --}}
             <form method="GET" action="{{ $indexUrl }}" class="y-filterpanel" data-filter-panel data-active="{{ $activeCount }}" hidden>
                 <input type="hidden" name="q" value="{{ $search }}">
                 @if($sort)<input type="hidden" name="sort" value="{{ $sort }}"><input type="hidden" name="dir" value="{{ $dir }}">@endif
@@ -66,8 +64,8 @@
                             <span class="y-filter__label">{{ __('Show') }}</span>
                             <select name="trashed" class="y-input y-filter__control" @if($ui) data-yurba-select @endif>
                                 <option value="">{{ __('Active') }}</option>
-                                <option value="only" @selected($trashedMode === 'only')>{{ __('Trashed') }}</option>
-                                <option value="with" @selected($trashedMode === 'with')>{{ __('All') }}</option>
+                                <option value="only" @selected($trashedMode == 'only')>{{ __('Trashed') }}</option>
+                                <option value="with" @selected($trashedMode == 'with')>{{ __('All') }}</option>
                             </select>
                         </label>
                     @endif
@@ -83,8 +81,7 @@
     </div>
 
     @if(count($bulk))
-        {{-- Checkboxes reference this form via their form="" attribute, so it can
-             live outside the table without nesting forms in the rows. --}}
+        {{-- checkboxes join this form via form="", so it lives outside the table without nesting forms --}}
         <form method="POST" action="{{ route('yurba.resource.bulk', $res->uriKey()) }}" id="y-bulk-form" class="y-bulkbar" hidden>
             @csrf
             <input type="hidden" name="action" value="">
@@ -108,10 +105,10 @@
                     @foreach($fields as $field)
                         <th>
                             @if($field->sortable)
-                                @php($isCol = $sort === $field->column())
-                                @php($nextDir = ($isCol && $dir === 'asc') ? 'desc' : 'asc')
+                                @php($isCol = $sort == $field->column())
+                                @php($nextDir = ($isCol && $dir == 'asc') ? 'desc' : 'asc')
                                 <a href="{{ route('yurba.resource.index', array_merge(request()->except('page'), ['resource' => $res->uriKey(), 'sort' => $field->column(), 'dir' => $nextDir])) }}">
-                                    {{ $field->label }}@if($isCol) <span class="y-sort">{{ $dir === 'asc' ? '▲' : '▼' }}</span>@endif
+                                    {{ $field->label }}@if($isCol) <span class="y-sort">{{ $dir == 'asc' ? '▲' : '▼' }}</span>@endif
                                 </a>
                             @else
                                 {{ $field->label }}
@@ -144,7 +141,7 @@
                                         @csrf
                                         <button type="submit" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Restore') }}" aria-label="{{ __('Restore') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'restore', 'text' => __('Restore')])</button>
                                     </form>
-                                    <form method="POST" action="{{ route('yurba.resource.forceDelete', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm('{{ __('Permanently delete this :name? This cannot be undone.', ['name' => \Illuminate\Support\Str::lower($res->label())]) }}');" class="y-inline">
+                                    <form method="POST" action="{{ route('yurba.resource.forceDelete', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm(@js(__('Permanently delete this :name? This cannot be undone.', ['name' => \Illuminate\Support\Str::lower($res->label())])));" class="y-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="y-btn y-btn__danger y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Delete permanently') }}" aria-label="{{ __('Delete permanently') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'delete_forever', 'text' => __('Delete permanently')])</button>
                                     </form>
@@ -169,7 +166,7 @@
                                     <a href="{{ route('yurba.resource.edit', [$res->uriKey(), $record->getKey()]) }}" class="y-btn y-btn__ghost y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Edit') }}" aria-label="{{ __('Edit') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'edit', 'text' => __('Edit')])</a>
                                 @endif
                                 @if($res->canDelete($yurbaUser, $record))
-                                    <form method="POST" action="{{ route('yurba.resource.destroy', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm('{{ __('Delete this :name?', ['name' => \Illuminate\Support\Str::lower($res->label())]) }}');" class="y-inline">
+                                    <form method="POST" action="{{ route('yurba.resource.destroy', [$res->uriKey(), $record->getKey()]) }}" onsubmit="return confirm(@js(__('Delete this :name?', ['name' => \Illuminate\Support\Str::lower($res->label())])));" class="y-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="y-btn y-btn__danger y-btn__xs {{ $ic ? 'y-btn__icon' : '' }}" @if($ic) title="{{ __('Delete') }}" aria-label="{{ __('Delete') }}" @endif>@include('yurba::partials.action-inner', ['icon' => 'delete', 'text' => __('Delete')])</button>
                                     </form>

@@ -1,3 +1,5 @@
+/* Tokens */
+
 [data-yurba] {
     --y-bg: #f4f5f7;
     --y-surface: #ffffff;
@@ -27,6 +29,7 @@
 }
 
 /* Base */
+
 *,
 *::before,
 *::after {
@@ -95,6 +98,7 @@
 }
 
 /* Layout · sidebar & nav */
+
 .y-shell {
     display: flex;
     min-height: 100vh;
@@ -150,7 +154,7 @@
 .y-nav__label {
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: .7px;
     color: var(--y-muted);
     font-weight: 700;
     margin: 14px 10px 6px;
@@ -226,6 +230,7 @@
 }
 
 /* Layout · main, topbar & footer */
+
 .y-main {
     flex: 1;
     min-width: 0;
@@ -381,6 +386,7 @@
 }
 
 /* Buttons */
+
 .y-btn {
     display: inline-flex;
     align-items: center;
@@ -446,6 +452,7 @@
 }
 
 /* Alerts */
+
 .y-alert {
     padding: 12px 14px;
     border-radius: var(--y-radius);
@@ -471,6 +478,7 @@
 }
 
 /* Pills, badges & thumbnails */
+
 .y-pill {
     display: inline-block;
     padding: 2px 9px;
@@ -509,6 +517,7 @@
 }
 
 /* Dashboard */
+
 .y-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -547,6 +556,7 @@
 }
 
 /* Toolbar & list controls */
+
 .y-toolbar {
     display: flex;
     align-items: center;
@@ -616,6 +626,7 @@
 }
 
 /* Table & bulk actions */
+
 .y-table-wrap {
     background: var(--y-surface);
     border: 1px solid var(--y-border);
@@ -634,7 +645,7 @@
     padding: 11px 14px;
     font-size: 11.5px;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: .5px;
     color: var(--y-muted);
     font-weight: 700;
     border-bottom: 1px solid var(--y-border);
@@ -749,6 +760,7 @@ tr.is-dragging {
 }
 
 /* Pagination */
+
 .y-pagination {
     margin-top: 16px;
 }
@@ -831,6 +843,7 @@ tr.is-dragging {
 }
 
 /* Forms & controls */
+
 .y-form {
     display: flex;
     flex-direction: column;
@@ -1074,6 +1087,7 @@ tr.is-dragging {
 }
 
 /* Form tabs & sections */
+
 .y-tabs {
     display: flex;
     gap: 2px;
@@ -1116,7 +1130,7 @@ tr.is-dragging {
 .y-section__title {
     font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: .5px;
     color: var(--y-muted);
     margin: 22px 0 12px;
     padding-bottom: 8px;
@@ -1178,6 +1192,7 @@ tr.is-dragging {
 }
 
 /* Repeater */
+
 .y-repeater__scroll {
     overflow-x: auto;
     border: 1px solid var(--y-border);
@@ -1256,6 +1271,7 @@ tr.is-dragging {
 }
 
 /* Select */
+
 .y-field .y-select {
     width: 100%;
 }
@@ -1283,6 +1299,9 @@ tr.is-dragging {
 }
 
 /* Editor */
+
+/* the root too: the editor's link/find dialogs and menus mount on <body> (in a y-win with YurbaUI), outside .ye */
+[data-yurba],
 [data-yurba] .ye:not(.ye--dark) {
     --ye-surface: var(--y-surface);
     --ye-surface-2: var(--y-surface-2);
@@ -1299,6 +1318,7 @@ tr.is-dragging {
 }
 
 /* List filters */
+
 .y-filters__search {
     width: 100%;
     max-width: 280px;
@@ -1326,7 +1346,7 @@ tr.is-dragging {
 .y-filter__label {
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: .5px;
     color: var(--y-muted);
     font-weight: 700;
 }
@@ -1433,6 +1453,7 @@ tr.is-dragging {
 }
 
 /* Detail (show) page */
+
 .y-detail {
     display: grid;
 }
@@ -1486,6 +1507,7 @@ tr.is-dragging {
 }
 
 /* Search page */
+
 .y-search-form {
     display: flex;
     gap: 10px;
@@ -1523,6 +1545,7 @@ tr.is-dragging {
 }
 
 /* Media library & picker */
+
 .y-media-upload__input {
     position: absolute;
     width: 1px;
@@ -1692,6 +1715,7 @@ tr.is-dragging {
 }
 
 /* Picker inside a YurbaUI modal */
+
 .y-win__header-body .y-picker__search {
     width: 100%;
 }
@@ -1753,6 +1777,7 @@ tr.is-dragging {
 }
 
 /* SEO field */
+
 .y-seo {
     display: flex;
     flex-direction: column;
@@ -1776,6 +1801,7 @@ tr.is-dragging {
 }
 
 /* Login */
+
 .y-login-body {
     display: flex;
     align-items: center;
@@ -1813,6 +1839,7 @@ tr.is-dragging {
 }
 
 /* Media usage */
+
 .y-usage__intro {
     display: flex;
     align-items: center;

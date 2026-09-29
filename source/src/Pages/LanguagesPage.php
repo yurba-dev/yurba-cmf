@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 use Yurba\Cmf\Facades\Yurba;
 use Yurba\Cmf\Settings\Store;
 
-// configure the frontend content languages (code, url slug, label, default).
-// hidden from the sidebar; reached from Settings -> Panel -> Enable multilingual.
 class LanguagesPage extends Page
 {
     public function label(): string
@@ -38,7 +36,7 @@ class LanguagesPage extends Page
         $locales = [];
         foreach ((array) $request->input('locales', []) as $row) {
             $code = strtolower(trim((string) ($row['code'] ?? '')));
-            if ($code === '' || ! preg_match('/^[a-z]{2}(-[a-z]{2})?$/', $code)) {
+            if ($code == '' || ! preg_match('/^[a-z]{2}(-[a-z]{2})?$/', $code)) {
                 continue;
             }
             $locales[$code] = [

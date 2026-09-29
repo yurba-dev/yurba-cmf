@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Yurba\Cmf\Seo\Seo;
 
-// manages a record's seo block (meta title/description/og image/noindex) in the
-// polymorphic yurba_seo table, so no columns on the content table. persisted in afterSave()
 class SeoField extends Field
 {
     public bool $virtual = true;
@@ -23,7 +21,6 @@ class SeoField extends Field
         return new static($name, $label);
     }
 
-    /** @return array<string, mixed> the current SEO values */
     public function formValue(Model $model): mixed
     {
         $old = old($this->name);

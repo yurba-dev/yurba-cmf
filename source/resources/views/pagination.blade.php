@@ -29,14 +29,13 @@
             @endif
         </div>
 
-        {{-- Jump to a specific page (keeps the current filters / sort). --}}
         <form method="GET" action="{{ $paginator->path() }}" class="y-pager-jump">
             @php
                 // flatten nested params (filters[status][]=x) so only scalars are echoed
                 $flatten = function ($data, $prefix = '') use (&$flatten) {
                     $out = [];
                     foreach ($data as $k => $v) {
-                        $name = $prefix === '' ? $k : $prefix.'['.$k.']';
+                        $name = $prefix == '' ? $k : $prefix.'['.$k.']';
                         $out += is_array($v) ? $flatten($v, $name) : [$name => $v];
                     }
                     return $out;

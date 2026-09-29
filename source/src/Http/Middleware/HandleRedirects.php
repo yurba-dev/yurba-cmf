@@ -9,8 +9,6 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Yurba\Cmf\Redirects\Redirect;
 
-// applies admin-managed redirects. global middleware so it fires even for paths
-// with no route (old urls). GET/HEAD only, never touches the admin panel.
 class HandleRedirects
 {
     public function handle(Request $request, Closure $next): Response
@@ -21,9 +19,8 @@ class HandleRedirects
 
         $from = Redirect::normalize($request->path());
 
-        // never redirect within the admin panel itself
         $prefix = trim((string) config('yurba.prefix', 'admin'), '/');
-        if ($prefix !== '' && ($from === $prefix || Str::startsWith($from, $prefix.'/'))) {
+        if ($prefix != '' && ($from == $prefix || Str::startsWith($from, $prefix.'/'))) {
             return $next($request);
         }
 
@@ -35,9 +32,8 @@ class HandleRedirects
         $hit = $map[$from];
         $target = $hit['to'];
 
-        // loop guard: a redirect pointing back to its own source is ignored
-        if (Redirect::normalize($target) === $from
-            && ! Str::startsWith($target, ['http://', 'https://', '//'])) {
+        // loop guard: a chain back to a visited path (or an absolute url to this host) is ignored rather than served as a 301 loop
+        if (Redirect::loops($from, $map, $request->getHost())) {
             return $next($request);
         }
 

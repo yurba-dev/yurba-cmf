@@ -4,12 +4,11 @@ namespace Yurba\Cmf\Content;
 
 use Illuminate\Support\Facades\Schema;
 
-// read/write content-page values on the frontend and from ContentPage screens
 class Content
 {
     protected static array $cache = [];
 
-    /** @return array<string, mixed> a page's field values, [field => value] */
+    /** @return array<string, mixed> */
     public static function get(string $key): array
     {
         if (array_key_exists($key, static::$cache)) {

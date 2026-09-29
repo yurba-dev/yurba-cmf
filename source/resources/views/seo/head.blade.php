@@ -1,5 +1,4 @@
-{{-- SEO meta tags. Pass $model (+ optional $fallback: title/description/image),
-     or a pre-resolved $seo array. Include inside your frontend <head>. --}}
+{{-- Pass $model (+ optional $fallback) or a resolved $seo array; include inside the frontend <head>. --}}
 @php($__seo = $seo ?? \Yurba\Cmf\Seo\Seo::resolve($model, $fallback ?? []))
 @if(! empty($__seo['title']))
     <title>{{ $__seo['title'] }}</title>

@@ -4,12 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// all YurbaCMF tables. loaded automatically via ServiceProvider::loadMigrationsFrom.
 return new class extends Migration
 {
     public function up(): void
     {
-        // media library
         Schema::create('media', function (Blueprint $table) {
             $table->id();
             $table->string('disk')->default('public');
@@ -23,7 +21,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // per-record revision snapshots (Resource::hasRevisions)
         Schema::create('yurba_revisions', function (Blueprint $table) {
             $table->id();
             $table->string('revisionable_type');
@@ -36,7 +33,6 @@ return new class extends Migration
             $table->index(['revisionable_type', 'revisionable_id']);
         });
 
-        // polymorphic seo metadata (SeoField)
         Schema::create('yurba_seo', function (Blueprint $table) {
             $table->id();
             $table->string('seoable_type');
@@ -50,11 +46,10 @@ return new class extends Migration
             $table->unique(['seoable_type', 'seoable_id']);
         });
 
-        // url redirects
         Schema::create('yurba_redirects', function (Blueprint $table) {
             $table->id();
-            $table->string('from', 2048);          // incoming path (normalized on lookup)
-            $table->string('to', 2048);            // target path or absolute url
+            $table->string('from', 2048);
+            $table->string('to', 2048);
             $table->unsignedSmallInteger('status')->default(301);
             $table->boolean('enabled')->default(true);
             $table->unsignedBigInteger('hits')->default(0);
@@ -63,7 +58,6 @@ return new class extends Migration
             $table->index(['enabled']);
         });
 
-        // content pages — one JSON document per page (Content\ContentPage)
         Schema::create('yurba_content', function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();

@@ -4,7 +4,6 @@ namespace Yurba\Cmf\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 
-// two date inputs (from/to) over a date column; value ['from'=>'Y-m-d','to'=>'Y-m-d'], either optional
 class DateRangeFilter extends Filter
 {
     public function isActive(mixed $value): bool

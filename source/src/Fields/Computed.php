@@ -6,14 +6,12 @@ use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
-// display-only field derived from the record via a using() callback; never persisted
 class Computed extends Field
 {
     public bool $virtual = true;
 
     protected ?Closure $callback = null;
 
-    // resolver: fn (Model $record): mixed
     public function using(Closure $callback): static
     {
         $this->callback = $callback;

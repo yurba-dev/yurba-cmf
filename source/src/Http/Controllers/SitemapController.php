@@ -7,12 +7,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-// public sitemap(s), config-driven (yurba.sitemap): a single urlset, or — when
-// yurba.sitemap.sitemaps is set — a <sitemapindex> over named /sitemap-{name}.xml.
-// records flagged noindex in yurba_seo are excluded.
 class SitemapController extends Controller
 {
-    // GET /sitemap.xml — a urlset (single mode) or a sitemapindex (multiple mode)
     public function index(): Response
     {
         abort_unless((bool) config('yurba.sitemap.enabled', true), 404);
@@ -31,7 +27,6 @@ class SitemapController extends Controller
         return $this->xml($this->renderUrlset($urls));
     }
 
-    // GET /sitemap-{name}.xml — a single named sitemap's urlset
     public function show(string $name): Response
     {
         abort_unless((bool) config('yurba.sitemap.enabled', true), 404);
@@ -47,13 +42,13 @@ class SitemapController extends Controller
         return $this->xml($this->renderUrlset($urls));
     }
 
-    // normalized ['name' => ['static'=>[], 'sources'=>[]], …]; empty = single mode
+    // empty means single mode
     protected function named(): array
     {
         $out = [];
         foreach ((array) config('yurba.sitemap.sitemaps', []) as $name => $def) {
             $name = (string) $name;
-            if ($name === '' || ! is_array($def)) {
+            if ($name == '' || ! is_array($def)) {
                 continue;
             }
             $out[$name] = [
@@ -72,7 +67,7 @@ class SitemapController extends Controller
         foreach ($static as $entry) {
             $entry = is_array($entry) ? $entry : ['loc' => $entry];
             $urls[] = [
-                'loc' => $this->absolute($entry['loc']),
+                'loc' => isset($entry['loc']) ? $this->absolute((string) $entry['loc']) : null,
                 'lastmod' => isset($entry['lastmod']) ? $this->date($entry['lastmod']) : null,
                 'changefreq' => $entry['changefreq'] ?? null,
                 'priority' => $entry['priority'] ?? null,
@@ -107,7 +102,6 @@ class SitemapController extends Controller
             $query->where($column, $value);
         }
 
-        // skip records flagged noindex in the polymorphic seo table
         $instance = new $model;
         $query->whereNotExists(function ($q) use ($instance) {
             $q->select(DB::raw(1))

@@ -12,10 +12,18 @@ use Illuminate\Support\Str;
 use Yurba\Cmf\Media\Media;
 use Yurba\Cmf\Settings\Store;
 
-// "Image usage & thumbnails": where each media image is used and which preset
-// thumbnails exist, with per-row/bulk/global generate and delete. Hidden from the nav.
 class MediaUsagePage extends Page
 {
+    protected static array $usageSources = [];
+
+    protected bool $scanFailed = false;
+
+    // for places the scan can't see: MediaUsagePage::usageSource('Orders', fn () => [title => text, ...])
+    public static function usageSource(string $label, callable $source): void
+    {
+        static::$usageSources[$label] = $source;
+    }
+
     public function label(): string
     {
         return __('Image usage & thumbnails');
@@ -36,7 +44,6 @@ class MediaUsagePage extends Page
         return false;
     }
 
-    // generate or delete thumbnails / images: single, selected, all, or unused.
     public function handle(Request $request): mixed
     {
         @set_time_limit(0);
@@ -49,8 +56,13 @@ class MediaUsagePage extends Page
             $ids = [$id];
         } elseif (in_array($action, ['generate_all', 'delete_thumbs_all'], true)) {
             $ids = $this->imageIds();
-        } elseif ($action === 'delete_unused') {
-            $ids = $this->unusedImageIds();
+        } elseif ($action == 'delete_unused') {
+            // only ids the admin reviewed on the "unused" list, and only if a fresh scan still finds them unused
+            $reviewed = array_map('strval', (array) $request->input('ids', []));
+            $ids = array_values(array_filter($this->unusedImageIds(), fn ($i) => in_array((string) $i, $reviewed, true)));
+            if ($this->scanFailed) {
+                return back()->with('yurba_status', __('Usage scan was incomplete, nothing was deleted.'));
+            }
         } else {
             $ids = array_values(array_filter((array) $request->input('ids', [])));
         }
@@ -69,11 +81,12 @@ class MediaUsagePage extends Page
                 if (! $m->isImage()) {
                     continue;
                 }
-                if ($op === 'generate') {
+                if ($op == 'generate') {
+                    Media::forgetThumbSkip($m->path, $m->disk);
                     foreach ($widths as $w) {
-                        Media::thumb($m->url, $w); // generates + caches when missing
+                        Media::thumb($m->url, $w);
                     }
-                } elseif ($op === 'delete_thumbs') {
+                } elseif ($op == 'delete_thumbs') {
                     $this->deleteThumbs($m);
                 } else {
                     $this->deleteThumbs($m);
@@ -96,7 +109,9 @@ class MediaUsagePage extends Page
         $images = Media::query()->where('mime', 'like', 'image/%')->orderByDesc('id')->get();
 
         $rows = [];
+        $unusedIds = [];
         $missingCount = $unusedCount = 0;
+        $existing = [];
         foreach ($images as $m) {
             $rel = $this->rel($m->path);
             $uses = $usage[$rel] ?? [];
@@ -104,7 +119,8 @@ class MediaUsagePage extends Page
             $thumbs = [];
             $missing = false;
             foreach ($presets as $name => $w) {
-                $exists = $this->thumbExists($m, $w);
+                $existing[$m->disk][$w] ??= $this->thumbIndex($m->disk, $w);
+                $exists = isset($existing[$m->disk][$w][$rel]);
                 $thumbs[$name] = ['width' => $w, 'exists' => $exists];
                 $missing = $missing || ! $exists;
             }
@@ -114,14 +130,15 @@ class MediaUsagePage extends Page
             }
             if (! $uses) {
                 $unusedCount++;
+                $unusedIds[] = $m->id;
             }
 
             $rows[] = ['media' => $m, 'uses' => $uses, 'thumbs' => $thumbs, 'missing' => $missing];
         }
 
-        if ($filter === 'missing') {
+        if ($filter == 'missing') {
             $rows = array_values(array_filter($rows, fn ($r) => $r['missing']));
-        } elseif ($filter === 'unused') {
+        } elseif ($filter == 'unused') {
             $rows = array_values(array_filter($rows, fn ($r) => ! $r['uses']));
         }
 
@@ -140,6 +157,8 @@ class MediaUsagePage extends Page
             'rows' => $paginator,
             'presets' => $presets,
             'filter' => $filter,
+            'unusedIds' => $unusedIds,
+            'scanFailed' => $this->scanFailed,
             'counts' => [
                 'all' => $images->count(),
                 'missing' => $missingCount,
@@ -148,7 +167,6 @@ class MediaUsagePage extends Page
         ]);
     }
 
-    // preset name => width, from config
     protected function presetWidths(): array
     {
         $presets = (array) config('yurba.media.thumb_presets', ['small' => 320, 'medium' => 640, 'large' => 1280]);
@@ -156,12 +174,31 @@ class MediaUsagePage extends Page
         return array_map('intval', $presets);
     }
 
-    // path relative to the media dir: media/2026/08/x.jpg -> 2026/08/x.jpg
     protected function rel(string $path): string
     {
         $dir = trim((string) config('yurba.media.dir', 'media'), '/');
 
         return Str::after($path, $dir.'/');
+    }
+
+    // one directory listing per preset instead of an exists() call per image
+    protected function thumbIndex(string $disk, int $width): array
+    {
+        $dir = trim((string) config('yurba.media.dir', 'media'), '/');
+        $base = $dir.'-thumbs/'.$width.'/';
+
+        try {
+            $files = Storage::disk($disk)->allFiles($base);
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $index = [];
+        foreach ($files as $file) {
+            $index[Str::after($file, $base)] = true;
+        }
+
+        return $index;
     }
 
     protected function thumbExists(Media $m, int $width): bool
@@ -172,11 +209,10 @@ class MediaUsagePage extends Page
         return Storage::disk($m->disk)->exists($thumbPath);
     }
 
-    // remove all cached derivatives for an image, keeping the original.
     protected function deleteThumbs(Media $m): void
     {
         $dir = trim((string) config('yurba.media.dir', 'media'), '/');
-        if ($dir === '' || ! str_starts_with($m->path, $dir.'/')) {
+        if ($dir == '' || ! str_starts_with($m->path, $dir.'/')) {
             return;
         }
 
@@ -190,13 +226,11 @@ class MediaUsagePage extends Page
         }
     }
 
-    /** @return array<int> ids of all image records */
     protected function imageIds(): array
     {
         return Media::query()->where('mime', 'like', 'image/%')->pluck('id')->all();
     }
 
-    /** @return array<int> ids of image records referenced nowhere */
     protected function unusedImageIds(): array
     {
         $usage = $this->usageIndex();
@@ -224,45 +258,101 @@ class MediaUsagePage extends Page
         };
     }
 
-    // reverse index: media rel-path => uses. Scans every string column of every
-    // resource record, the content store and settings, so an image counts as used
-    // wherever its URL appears (covers and rich-text/body embeds alike).
+    // an image counts as used wherever its URL appears: any string column of any resource record, the content store or settings
     protected function usageIndex(): array
     {
         $dir = trim((string) config('yurba.media.dir', 'media'), '/');
         $index = [];
+        $this->scanFailed = false;
 
         foreach (app('yurba.cmf')->resources() as $res) {
             try {
-                $records = $res->query()->get();
-            } catch (\Throwable $e) {
-                continue;
-            }
+                // trashed rows can still be restored, so their images count as used
+                $query = $res->query();
+                if ($res->usesSoftDeletes()) {
+                    $query->withTrashed();
+                }
 
-            foreach ($records as $rec) {
-                $rels = [];
-                foreach ($rec->getAttributes() as $val) {
-                    if (is_string($val) && $val !== '') {
-                        foreach ($this->extractRels($val, $dir) as $r) {
-                            $rels[$r] = true;
+                foreach ($query->reorder()->lazyById(200) as $rec) {
+                    $rels = [];
+                    foreach ($rec->getAttributes() as $val) {
+                        if (is_string($val) && $val != '') {
+                            foreach ($this->extractRels($val, $dir) as $r) {
+                                $rels[$r] = true;
+                            }
                         }
                     }
+                    if (! $rels) {
+                        continue;
+                    }
+                    $entry = [
+                        'resource' => $res->label(),
+                        'title' => $res->title($rec),
+                        'url' => route('yurba.resource.edit', [$res->uriKey(), $rec->getKey()]),
+                    ];
+                    foreach (array_keys($rels) as $r) {
+                        $index[$r][] = $entry;
+                    }
                 }
-                if (! $rels) {
-                    continue;
-                }
-                $entry = [
-                    'resource' => $res->label(),
-                    'title' => $res->title($rec),
-                    'url' => route('yurba.resource.edit', [$res->uriKey(), $rec->getKey()]),
-                ];
-                foreach (array_keys($rels) as $r) {
-                    $index[$r][] = $entry;
-                }
+            } catch (\Throwable $e) {
+                $this->scanFailed = true;
+
+                continue;
             }
         }
 
-        // content pages (home, contacts, …)
+        // per-locale values, seo og images and revision snapshots live in side tables
+        $side = [
+            'yurba_translations' => ['label' => 'Translation', 'column' => 'value', 'title' => fn ($row) => $row->translatable_type.' #'.$row->translatable_id.' ('.$row->locale.')'],
+            'yurba_seo' => ['label' => 'SEO', 'column' => 'og_image', 'title' => fn ($row) => $row->seoable_type.' #'.$row->seoable_id],
+            'yurba_revisions' => ['label' => 'Revision', 'column' => 'data', 'title' => fn ($row) => $row->revisionable_type.' #'.$row->revisionable_id],
+        ];
+        foreach ($side as $table => $conf) {
+            try {
+                if (! Schema::hasTable($table)) {
+                    continue;
+                }
+                foreach (DB::table($table)->where($conf['column'], 'like', '%'.$dir.'%')->lazyById(500) as $row) {
+                    foreach ($this->extractRels((string) $row->{$conf['column']}, $dir) as $r) {
+                        $index[$r][] = ['resource' => $conf['label'], 'title' => $conf['title']($row), 'url' => null];
+                    }
+                }
+            } catch (\Throwable $e) {
+                $this->scanFailed = true;
+            }
+        }
+
+        foreach ([resource_path('views'), config_path()] as $root) {
+            if (! is_dir($root)) {
+                continue;
+            }
+            try {
+                $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+                foreach ($files as $file) {
+                    if (! $file->isFile() || $file->getSize() > 1_048_576) {
+                        continue;
+                    }
+                    foreach ($this->extractRels((string) file_get_contents($file->getPathname()), $dir) as $r) {
+                        $index[$r][] = ['resource' => 'File', 'title' => Str::after($file->getPathname(), base_path().DIRECTORY_SEPARATOR), 'url' => null];
+                    }
+                }
+            } catch (\Throwable $e) {
+                $this->scanFailed = true;
+            }
+        }
+
+        foreach (static::$usageSources as $label => $source) {
+            try {
+                foreach ((array) $source() as $title => $text) {
+                    foreach ($this->extractRels((string) (is_string($text) ? $text : json_encode($text)), $dir) as $r) {
+                        $index[$r][] = ['resource' => (string) $label, 'title' => (string) $title, 'url' => null];
+                    }
+                }
+            } catch (\Throwable $e) {
+                $this->scanFailed = true;
+            }
+        }
+
         try {
             if (Schema::hasTable('yurba_content')) {
                 foreach (DB::table('yurba_content')->get(['key', 'data']) as $row) {
@@ -272,9 +362,9 @@ class MediaUsagePage extends Page
                 }
             }
         } catch (\Throwable $e) {
+            $this->scanFailed = true;
         }
 
-        // panel settings (e.g. the logo)
         try {
             foreach (Store::all() as $key => $val) {
                 if (is_string($val)) {
@@ -284,9 +374,9 @@ class MediaUsagePage extends Page
                 }
             }
         } catch (\Throwable $e) {
+            $this->scanFailed = true;
         }
 
-        // dedupe identical entries per image
         foreach ($index as $r => $uses) {
             $seen = [];
             $index[$r] = array_values(array_filter($uses, function ($u) use (&$seen) {
@@ -302,8 +392,7 @@ class MediaUsagePage extends Page
         return $index;
     }
 
-    // extract media rel-paths (e.g. "2026/08/x.jpg") referenced anywhere in a string.
-    // Matches /{dir}/… but not the /{dir}-thumbs/ derivative paths.
+    // /{dir}/x and its /{dir}-thumbs/{width}/x derivatives both count as a use of x
     protected function extractRels(string $text, string $dir): array
     {
         // unescape JSON-escaped slashes (\/media\/…) so content/repeater blobs match
@@ -311,11 +400,11 @@ class MediaUsagePage extends Page
             $text = str_replace('\\/', '/', $text);
         }
 
-        if (! str_contains($text, '/'.$dir.'/')) {
+        if (! str_contains($text, '/'.$dir)) {
             return [];
         }
 
-        preg_match_all('#/'.preg_quote($dir, '#').'/([A-Za-z0-9/_.\-]+\.[A-Za-z0-9]+)#', $text, $m);
+        preg_match_all('#/'.preg_quote($dir, '#').'(?:-thumbs/\d+)?/([A-Za-z0-9/_.\-]+\.[A-Za-z0-9]+)#', $text, $m);
 
         return array_values(array_unique($m[1] ?? []));
     }

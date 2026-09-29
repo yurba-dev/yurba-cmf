@@ -3,12 +3,11 @@
 namespace Yurba\Cmf\Media;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * a file in the media library, stored on a configurable Storage disk.
- *
  * @property string $disk
  * @property string $path
  * @property string $name
@@ -20,6 +19,8 @@ use Illuminate\Support\Str;
 class Media extends Model
 {
     protected $table = 'media';
+
+    protected static array $thumbMemo = [];
 
     protected $guarded = [];
 
@@ -34,20 +35,18 @@ class Media extends Model
         return $this->relativize(Storage::disk($this->disk)->url($this->path));
     }
 
-    // small derivative for grids/pickers; falls back to the full image
     public function getThumbUrlAttribute(): string
     {
         return static::thumb($this->url, config('yurba.media.thumb_default', 'small'));
     }
 
-    // thumbnail URL at the given size (preset name or pixel width), generated lazily on
-    // first request and cached under {dir}-thumbs/{width}/. Returns the original when it
-    // can't derive one (not a library file, optimization off, unknown size, generation fails).
-    public static function thumb(string $url, int|string $size = 'small'): string
+    // generated lazily; returns the original when no thumb can be derived, and '' for an empty value (a cleared optional image)
+    public static function thumb(?string $url, int|string $size = 'small'): string
     {
+        $url = (string) $url;
         $dir = trim((string) config('yurba.media.dir', 'media'), '/');
 
-        if (! config('yurba.media.optimize', true) || $dir === '' || ! str_contains($url, '/'.$dir.'/')) {
+        if ($url == '' || ! app('yurba.cmf')->mediaOptimize() || $dir == '' || ! str_contains($url, '/'.$dir.'/')) {
             return $url;
         }
 
@@ -57,30 +56,81 @@ class Media extends Model
         }
 
         $disk = (string) config('yurba.media.disk', 'public');
-        $rel = Str::after($url, '/'.$dir.'/');            // 2026/08/x.jpeg
+        $rel = Str::after($url, '/'.$dir.'/');
+        // the url is a stored field value, so it must not steer reads and writes elsewhere on the disk
+        if (str_contains($rel, '..')) {
+            return $url;
+        }
         $origPath = $dir.'/'.$rel;
-        $thumbPath = $dir.'-thumbs/'.$width.'/'.$rel;     // media-thumbs/320/2026/08/x.jpeg
+        $thumbPath = $dir.'-thumbs/'.$width.'/'.$rel;
+        $memo = $disk.':'.$thumbPath;
+
+        if (isset(static::$thumbMemo[$memo])) {
+            return static::$thumbMemo[$memo] ?: $url;
+        }
+
         $storage = Storage::disk($disk);
+        // remember "no thumbnail" (svg, pdf, oversized) instead of reading the whole file on every page view
+        $skipKey = 'yurba.thumb.skip.'.md5($memo);
 
         try {
             if (! $storage->exists($thumbPath)) {
-                if (! $storage->exists($origPath)) {
+                if (static::cacheCall(fn () => Cache::get($skipKey)) || ! $storage->exists($origPath)) {
+                    return static::$thumbMemo[$memo] = $url;
+                }
+
+                // concurrent first views of a page would all resize the same image
+                $lock = static::cacheCall(fn () => Cache::lock('yurba.thumb.'.md5($memo), 60));
+                if ($lock && ! static::cacheCall(fn () => $lock->get(), true)) {
                     return $url;
                 }
-                $t = ImageOptimizer::thumbnail($storage->get($origPath), $width);
-                if (! $t) {
-                    return $url; // non-raster / oversized — serve the original
+                try {
+                    if (! $storage->exists($thumbPath)) {
+                        $t = ImageOptimizer::thumbnail($storage->get($origPath), $width);
+                        if (! $t) {
+                            static::cacheCall(fn () => Cache::put($skipKey, true, now()->addDay()));
+
+                            return static::$thumbMemo[$memo] = $url;
+                        }
+                        $storage->put($thumbPath, $t[0]);
+                    }
+                } finally {
+                    if ($lock) {
+                        static::cacheCall(fn () => $lock->release());
+                    }
                 }
-                $storage->put($thumbPath, $t[0]);
             }
 
-            return static::relativizeUrl($storage->url($thumbPath));
+            return static::$thumbMemo[$memo] = static::relativizeUrl($storage->url($thumbPath));
         } catch (\Throwable $e) {
             return $url;
         }
     }
 
-    // resolve a preset name or raw width to a pixel width (0 = unknown/disabled)
+    // the cache is an optimization here; a store without locks must not break thumbs
+    protected static function cacheCall(callable $fn, mixed $fallback = null): mixed
+    {
+        try {
+            return $fn();
+        } catch (\Throwable $e) {
+            return $fallback;
+        }
+    }
+
+    public static function forgetThumbSkip(string $path, ?string $disk = null): void
+    {
+        $disk ??= (string) config('yurba.media.disk', 'public');
+        $dir = trim((string) config('yurba.media.dir', 'media'), '/');
+        $rel = Str::after($path, $dir.'/');
+
+        foreach (array_unique(array_merge((array) config('yurba.media.thumb_presets', []), [320, 640, 1280])) as $width) {
+            $memo = $disk.':'.$dir.'-thumbs/'.(int) $width.'/'.$rel;
+            unset(static::$thumbMemo[$memo]);
+            static::cacheCall(fn () => Cache::forget('yurba.thumb.skip.'.md5($memo)));
+        }
+    }
+
+    // 0 = unknown size or thumbnails disabled
     public static function thumbWidth(int|string $size): int
     {
         if (is_int($size)) {
@@ -92,14 +142,13 @@ class Media extends Model
         return (int) ($presets[$size] ?? 0);
     }
 
-    // back-compat: maps to the default preset.
-    public static function thumbFor(string $url): string
+    // back-compat: maps to the default preset
+    public static function thumbFor(?string $url): string
     {
         return static::thumb($url, config('yurba.media.thumb_default', 'small'));
     }
 
-    // return a site-root-relative URL (/storage/…) so stored values are domain-
-    // independent; opt out for external CDN/S3 disks with yurba.media.relative_urls=false
+    // site-root-relative so stored values survive a domain change; external CDN/S3 disks opt out via yurba.media.relative_urls
     protected function relativize(string $url): string
     {
         return static::relativizeUrl($url);
@@ -111,8 +160,7 @@ class Media extends Model
             return $url;
         }
 
-        // site-root-relative, collapsing any accidental leading // (e.g. a
-        // trailing-slash APP_URL) that would otherwise read as a protocol-relative host
+        // collapse an accidental leading // (e.g. a trailing-slash APP_URL) that would read as a protocol-relative host
         return '/'.ltrim(parse_url($url, PHP_URL_PATH) ?: '', '/');
     }
 

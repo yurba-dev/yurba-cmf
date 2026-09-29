@@ -30,21 +30,26 @@ class SettingsController extends Controller
     public function save(Request $request, string $page)
     {
         $settings = $this->resolve($page);
-        $request->validate($settings->validationRules());
+        $input = $request->all();
+        $request->validate($settings->visibleValidationRules($input));
 
-        // reuse each field's fill() against a throwaway model, then persist the attribute
+        // readonly/hidden fields are not posted, so they are skipped and keep their stored value
         $record = $this->record($settings);
+        $values = [];
         foreach ($settings->fields() as $field) {
+            if ($field->readonly || $field->virtual || ! $field->passesCondition($input)) {
+                continue;
+            }
             $field->fill($request, $record);
-            Store::set($field->column(), $record->{$field->column()});
+            $values[$field->column()] = $record->{$field->column()};
         }
+        Store::setMany($values);
 
         return redirect()
             ->route('yurba.settings.show', $settings->uriKey())
             ->with('yurba_status', __(':name settings saved.', ['name' => $settings->label()]));
     }
 
-    // non-persisted model preloaded with current values so the fields render
     protected function record(SettingsPage $page): Model
     {
         $record = new class extends Model

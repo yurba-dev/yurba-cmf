@@ -5,8 +5,6 @@ namespace Yurba\Cmf\Filters;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
-// list filter declared on a Resource via filters(); its value arrives under the
-// f[key] query param and constrains the index (and export) query
 abstract class Filter
 {
     public string $key;

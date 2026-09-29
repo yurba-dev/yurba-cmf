@@ -4,20 +4,16 @@ namespace Yurba\Cmf\Fields;
 
 use Illuminate\Database\Eloquent\Model;
 
-// fk select; field name is the fk column, options come from the related model
 class BelongsTo extends Field
 {
-    /** @var class-string<Model> */
     public string $relatedModel;
 
     public string $titleColumn = 'name';
 
     public bool $nullable = false;
 
-    /** @var array<int|string, string>|null */
     protected ?array $optionCache = null;
 
-    /** @param class-string<Model> $model */
     public function relatedModel(string $model): static
     {
         $this->relatedModel = $model;
@@ -39,7 +35,6 @@ class BelongsTo extends Field
         return $this;
     }
 
-    /** @return array<int|string, string> id => title */
     public function options(): array
     {
         return $this->optionCache ??= $this->relatedModel::query()

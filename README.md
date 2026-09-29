@@ -1,6 +1,6 @@
 # YurbaCMF
 
-A lightweight, dependency-free auto-CRUD admin panel and content framework for Laravel. The whole interface is plain Blade and vanilla CSS — no front-end build step and nothing extra to compile. Declare a model and its fields, and the panel generates the list, forms, validation and persistence.
+A lightweight, dependency-free auto-CRUD admin panel and content framework for Laravel. The whole interface is plain Blade and vanilla CSS - no front-end build step and nothing extra to compile. Declare a model and its fields, and the panel generates the list, forms, validation and persistence.
 
 ## Features
 

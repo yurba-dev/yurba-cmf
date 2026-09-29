@@ -10,7 +10,7 @@
         <button type="submit" class="y-btn y-btn__primary">{{ __('Search') }}</button>
     </form>
 
-    @if($term === '')
+    @if($term == '')
         <p class="y-muted">{{ __('Enter a term to search across every resource.') }}</p>
     @elseif(mb_strlen($term) < 2)
         <p class="y-muted">{{ __('Type at least 2 characters.') }}</p>
@@ -31,7 +31,7 @@
                                 <tr>
                                     <td>{{ $item['title'] }}</td>
                                     <td class="y-col-actions">
-                                        <a href="{{ $item['url'] }}" class="y-btn y-btn__ghost y-btn__xs">Open</a>
+                                        <a href="{{ $item['url'] }}" class="y-btn y-btn__ghost y-btn__xs">{{ __('Open') }}</a>
                                     </td>
                                 </tr>
                             @endforeach

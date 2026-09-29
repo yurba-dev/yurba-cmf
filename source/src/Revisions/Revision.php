@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * immutable snapshot of a record's attributes at save time.
- *
  * @property string $revisionable_type
  * @property int $revisionable_id
  * @property array $data
@@ -31,7 +29,6 @@ class Revision extends Model
         return $this->morphTo();
     }
 
-    // changed keys vs another attribute set (compact diff)
     public function changedFrom(array $other): array
     {
         $changed = [];

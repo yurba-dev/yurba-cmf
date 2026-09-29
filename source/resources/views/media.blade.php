@@ -22,8 +22,8 @@
         </span>
     </div>
 
-    @if($media->total() === 0)
-        <p class="y-muted">{{ __('No media yet. Upload images or files to reuse across the panel — copy a URL and paste it into any image or link field.') }}</p>
+    @if($media->total() == 0)
+        <p class="y-muted">{{ __('No media yet. Upload images or files to reuse across the panel: copy a URL and paste it into any image or link field.') }}</p>
     @else
         <div class="y-media-grid">
             @foreach($media as $item)
@@ -48,7 +48,7 @@
                         <a href="{{ $item->url }}" target="_blank" rel="noopener" class="y-btn y-btn__ghost y-btn__xs y-btn__icon" title="{{ __('Open') }}" aria-label="{{ __('Open') }}">
                             <span class="material-symbols-rounded">open_in_new</span>
                         </a>
-                        <form method="POST" action="{{ route('yurba.media.destroy', $item->id) }}" onsubmit="return confirm('{{ __('Delete this file?') }}');" class="y-inline">
+                        <form method="POST" action="{{ route('yurba.media.destroy', $item->id) }}" onsubmit="return confirm(@js(__('Delete this file?')));" class="y-inline">
                             @csrf @method('DELETE')
                             <button type="submit" class="y-btn y-btn__danger y-btn__xs y-btn__icon" title="{{ __('Delete') }}" aria-label="{{ __('Delete') }}">
                                 <span class="material-symbols-rounded">delete</span>
@@ -61,7 +61,6 @@
 
         <div class="y-pagination">{{ $media->links('yurba::pagination') }}</div>
 
-        {{-- Click a card's image to open it full-size in YurbaPV (when enabled). --}}
         @if(config('yurba.ui.viewer', true))
             @include('yurba::partials.ui-viewer')
         @endif

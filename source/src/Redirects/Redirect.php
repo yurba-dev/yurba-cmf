@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * a url redirect looked up via a forever-cached map, flushed on save/delete.
- *
  * @property string $from
  * @property string $to
  * @property int    $status
@@ -34,8 +32,6 @@ class Redirect extends Model
         static::deleted(fn () => Cache::forget(self::CACHE_KEY));
     }
 
-    // drop scheme/host/query and surrounding slashes so "/Old/Page/" and
-    // "Old/Page?x=1" reduce to the same key
     public static function normalize(?string $path): string
     {
         $path = parse_url((string) $path, PHP_URL_PATH);
@@ -43,7 +39,56 @@ class Redirect extends Model
         return trim(rawurldecode((string) $path), '/');
     }
 
-    /** @return array<string, array{to: string, status: int, id: int}> */
+    public static function internalPath(string $to, string $host): ?string
+    {
+        $to = trim($to);
+        if (preg_match('#^(https?:)?//#i', $to)) {
+            $targetHost = strtolower((string) parse_url(str_starts_with($to, '//') ? 'http:'.$to : $to, PHP_URL_HOST));
+            if ($targetHost == '' || $targetHost != strtolower($host)) {
+                return null;
+            }
+        }
+
+        return static::normalize($to);
+    }
+
+    public static function loops(string $from, array $map, string $host): bool
+    {
+        $seen = [$from => true];
+        $current = $from;
+
+        for ($i = 0; $i < 32 && isset($map[$current]); $i++) {
+            $next = static::internalPath((string) $map[$current]['to'], $host);
+            if ($next === null) {
+                return false;
+            }
+            if (isset($seen[$next])) {
+                return true;
+            }
+            $seen[$next] = true;
+            $current = $next;
+        }
+
+        return isset($map[$current]);
+    }
+
+    public static function wouldLoop(string $from, string $to, string $host, mixed $ignoreId = null): bool
+    {
+        $map = static::query()
+            ->where('enabled', true)
+            ->when($ignoreId !== null, fn ($q) => $q->whereKeyNot($ignoreId))
+            ->get(['from', 'to'])
+            ->keyBy(fn ($r) => static::normalize($r->from))
+            ->map(fn ($r) => ['to' => $r->to])
+            ->all();
+
+        $from = static::normalize($from);
+        $map[$from] = ['to' => $to];
+
+        return static::loops($from, $map, $host);
+    }
+
+    // normalized from => [to, status, id]
     public static function map(): array
     {
         return Cache::rememberForever(self::CACHE_KEY, function () {

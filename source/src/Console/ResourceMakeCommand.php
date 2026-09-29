@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputOption;
 
-// scaffolds a Resource in App\Admin. --from-schema maps each table column to a
-// field; --register appends the class to config so it shows in the sidebar.
 class ResourceMakeCommand extends GeneratorCommand
 {
     protected $name = 'yurba:resource';
@@ -17,7 +15,6 @@ class ResourceMakeCommand extends GeneratorCommand
 
     protected $type = 'Resource';
 
-    // field imports collected while mapping the schema (fqn => true)
     protected array $imports = [];
 
     protected function getStub(): string
@@ -30,7 +27,6 @@ class ResourceMakeCommand extends GeneratorCommand
         return $rootNamespace.'\Admin';
     }
 
-    // force the class name to end in "Resource" (yurba:resource Job => JobResource)
     protected function getNameInput(): string
     {
         $name = trim((string) $this->argument('name'));
@@ -70,11 +66,10 @@ class ResourceMakeCommand extends GeneratorCommand
         return $this->replaceClass($stub, $name);
     }
 
-    // model fqn from --model, or by stripping "Resource" off the name
     protected function modelClass(string $name): string
     {
         $model = (string) $this->option('model');
-        if ($model !== '') {
+        if ($model != '') {
             return Str::startsWith($model, '\\') ? ltrim($model, '\\') : $model;
         }
 
@@ -83,11 +78,11 @@ class ResourceMakeCommand extends GeneratorCommand
         return $this->rootNamespace().'Models\\'.$base;
     }
 
-    /** @return array{0: string, 1: string} [fields code, specials block] */
+    // [fields code, specials block]
     protected function fieldsFromSchema(string $model, string $modelShort): array
     {
         if (! class_exists($model)) {
-            $this->components->warn("Model {$model} not found — generating an empty resource.");
+            $this->components->warn("Model {$model} not found, generating an empty resource.");
 
             return $this->skeletonFields();
         }
@@ -130,7 +125,6 @@ class ResourceMakeCommand extends GeneratorCommand
         return [implode("\n", $lines), $this->specialsBlock($modelShort)];
     }
 
-    /** @return array{0: string, 1: string} */
     protected function skeletonFields(): array
     {
         $this->imports['Yurba\\Cmf\\Fields\\Text'] = true;
@@ -141,7 +135,6 @@ class ResourceMakeCommand extends GeneratorCommand
         return [$line, ''];
     }
 
-    // map one column descriptor to an indented field line (with optional // TODO)
     protected function mapColumn(array $col, array $ctx): string
     {
         $name = $col['name'];
@@ -153,14 +146,11 @@ class ResourceMakeCommand extends GeneratorCommand
         $expr = null;
         $todo = null;
 
-        // slug backed by the sluggable trait -> our permalink field
-        if ($name === 'slug' && $ctx['sluggable']) {
+        if ($name == 'slug' && $ctx['sluggable']) {
             $this->use('Slug');
             $expr = "Slug::make('slug', 'Permalink')->baseUrl(url('/{$ctx['uri']}'))";
             $todo = 'verify the public base URL';
-        }
-        // foreign key -> belongsto
-        elseif (Str::endsWith($lower, '_id')) {
+        } elseif (Str::endsWith($lower, '_id')) {
             $base = Str::beforeLast($name, '_id');
             $related = Str::studly(Str::singular($base));
             $this->use('BelongsTo');
@@ -171,39 +161,28 @@ class ResourceMakeCommand extends GeneratorCommand
             if (! class_exists($this->rootNamespace().'Models\\'.$related)) {
                 $todo = "confirm related model {$related}";
             }
-        }
-        // boolean
-        elseif ($typeName === 'boolean' || $fullType === 'tinyint(1)') {
+        } elseif ($typeName == 'boolean' || $fullType == 'tinyint(1)') {
             $this->use('Boolean');
             $label = Str::headline(Str::startsWith($lower, 'is_') ? Str::after($name, 'is_') : $name);
             $expr = "Boolean::make('{$name}', '{$label}')";
-        }
-        // enum -> select
-        elseif (Str::startsWith($fullType, 'enum(')) {
+        } elseif (Str::startsWith($fullType, 'enum(')) {
             $this->use('Select');
-            $expr = "Select::make('{$name}')->options([{$this->enumOptions($fullType)}])";
-        }
-        // dates
-        elseif (in_array($typeName, ['datetime', 'timestamp'], true)) {
+            // the original type, not $fullType: enum values are case-sensitive
+            $expr = "Select::make('{$name}')->options([{$this->enumOptions((string) $col['type'])}])";
+        } elseif (in_array($typeName, ['datetime', 'timestamp'], true)) {
             $this->use('Date');
             $expr = "Date::make('{$name}')->withTime()->onlyOnForm()";
-        } elseif ($typeName === 'date') {
+        } elseif ($typeName == 'date') {
             $this->use('Date');
             $expr = "Date::make('{$name}')->onlyOnForm()";
-        }
-        // numbers
-        elseif (in_array($typeName, ['int', 'integer', 'bigint', 'smallint', 'mediumint', 'tinyint', 'decimal', 'float', 'double', 'numeric'], true)) {
+        } elseif (in_array($typeName, ['int', 'integer', 'bigint', 'smallint', 'mediumint', 'tinyint', 'decimal', 'float', 'double', 'numeric'], true)) {
             $this->use('Number');
             $expr = "Number::make('{$name}')";
-        }
-        // json
-        elseif (in_array($typeName, ['json', 'jsonb'], true)) {
+        } elseif (in_array($typeName, ['json', 'jsonb'], true)) {
             $this->use('Tags');
             $expr = "Tags::make('{$name}')->onlyOnForm()";
             $todo = 'Tags or Repeater?';
-        }
-        // long text
-        elseif (in_array($typeName, ['text', 'mediumtext', 'longtext', 'tinytext'], true)) {
+        } elseif (in_array($typeName, ['text', 'mediumtext', 'longtext', 'tinytext'], true)) {
             if (in_array($lower, ['description', 'content', 'body'], true)) {
                 $this->use('Editor');
                 $expr = "Editor::make('{$name}')->onlyOnForm()";
@@ -211,9 +190,7 @@ class ResourceMakeCommand extends GeneratorCommand
                 $this->use('Textarea');
                 $expr = "Textarea::make('{$name}')->onlyOnForm()";
             }
-        }
-        // string-ish: image / email / url / title / plain
-        elseif (Str::contains($lower, ['avatar', 'image', 'photo', 'logo', 'thumbnail', 'cover', 'picture'])) {
+        } elseif (Str::contains($lower, ['avatar', 'image', 'photo', 'logo', 'thumbnail', 'cover', 'picture'])) {
             $this->use('Image');
             $label = Str::headline($name);
             $expr = "Image::make('{$name}', '{$label}')->dir('{$ctx['uri']}')";
@@ -223,7 +200,7 @@ class ResourceMakeCommand extends GeneratorCommand
         } elseif (Str::contains($lower, ['url', 'link'])) {
             $this->use('Text');
             $expr = "Text::make('{$name}')->onlyOnForm()->rules('nullable|url|max:1024')";
-        } elseif ($name === $ctx['title']) {
+        } elseif ($name == $ctx['title']) {
             $this->use('Text');
             $max = $this->lengthOf($fullType) ?? 255;
             $expr = "Text::make('{$name}')->searchable()->sortable()->rules('required|string|max:{$max}')";
@@ -235,7 +212,6 @@ class ResourceMakeCommand extends GeneratorCommand
         return str_repeat(' ', 12).$expr.','.($todo ? '  // TODO: '.$todo : '');
     }
 
-    // column used as the record's title (searchable + required)
     protected function titleColumn(array $columns): ?string
     {
         $names = array_map(fn ($c) => $c['name'], $columns);
@@ -248,7 +224,6 @@ class ResourceMakeCommand extends GeneratorCommand
         return null;
     }
 
-    // build "'publish' => 'Publish', 'draft' => 'Draft'" from an enum type
     protected function enumOptions(string $fullType): string
     {
         preg_match_all("/'([^']*)'/", $fullType, $m);
@@ -260,17 +235,15 @@ class ResourceMakeCommand extends GeneratorCommand
         return implode(', ', $pairs);
     }
 
-    // length from a type like varchar(150)
     protected function lengthOf(string $fullType): ?int
     {
         return preg_match('/\((\d+)\)/', $fullType, $m) ? (int) $m[1] : null;
     }
 
-    // uriKey()/pluralLabel() overrides when the model name is uncountable
     protected function specialsBlock(string $modelShort): string
     {
         $kebab = Str::kebab($modelShort);
-        if (Str::plural($kebab) !== $kebab) {
+        if (Str::plural($kebab) != $kebab) {
             return '';
         }
 
@@ -306,12 +279,11 @@ class ResourceMakeCommand extends GeneratorCommand
         return $result;
     }
 
-    // add the resource (and its use import) to the resources array in config
     protected function registerInConfig(string $fqn): void
     {
         $path = $this->laravel->configPath('yurba.php');
         if (! $this->files->exists($path)) {
-            $this->components->warn('config/yurba.php not found — add '.class_basename($fqn).'::class to the resources array yourself.');
+            $this->components->warn('config/yurba.php not found, add '.class_basename($fqn).'::class to the resources array yourself.');
 
             return;
         }
@@ -335,7 +307,6 @@ class ResourceMakeCommand extends GeneratorCommand
         $this->components->info($short.' registered in config/yurba.php.');
     }
 
-    // insert a use line alphabetically among the App\Admin\*Resource imports
     protected function insertUse(array $lines, string $use): array
     {
         $matches = [];
@@ -345,7 +316,6 @@ class ResourceMakeCommand extends GeneratorCommand
             }
         }
 
-        // no existing resource imports: drop it after the opening <?php tag
         if (empty($matches)) {
             array_splice($lines, 1, 0, ['', $use]);
 
@@ -365,7 +335,6 @@ class ResourceMakeCommand extends GeneratorCommand
         return $lines;
     }
 
-    // insert an entry at the top of the resources array
     protected function insertIntoResources(array $lines, string $entry): array
     {
         foreach ($lines as $i => $line) {
@@ -376,7 +345,7 @@ class ResourceMakeCommand extends GeneratorCommand
             }
         }
 
-        $this->components->warn("Could not find the 'resources' array — add {$entry} manually.");
+        $this->components->warn("Could not find the 'resources' array, add {$entry} manually.");
 
         return $lines;
     }

@@ -5,7 +5,6 @@ namespace Yurba\Cmf\Console;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 
-// first-run setup: publishes config + assets and creates App\Admin
 class InstallCommand extends Command
 {
     protected $signature = 'yurba:install {--force : Overwrite already-published files}';

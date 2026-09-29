@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YurbaCMF — Documentation</title>
+    <title>YurbaCMF - Documentation</title>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -64,7 +64,7 @@
         <section id="overview">
             <div class="doc-header">
                 <h2 class="doc-component-name">YurbaCMF</h2>
-                <p class="doc-component-desc">A lightweight, dependency-free auto-CRUD admin panel and lite content framework for Laravel. The whole interface is plain Blade and vanilla CSS — no front-end build step and nothing extra to compile. Declare a model and a set of fields, and the panel generates the list, forms, validation and persistence.</p>
+                <p class="doc-component-desc">A lightweight, dependency-free auto-CRUD admin panel and lite content framework for Laravel. The whole interface is plain Blade and vanilla CSS - no front-end build step and nothing extra to compile. Declare a model and a set of fields, and the panel generates the list, forms, validation and persistence.</p>
             </div>
 
             <div class="hero-shot">
@@ -77,12 +77,12 @@
                     <div class="feature">
                         <span class="material-symbols-rounded">table_rows</span>
                         <div class="feature-title">Auto-CRUD</div>
-                        <div class="feature-desc">List, create, edit, show and delete — generated from a resource class.</div>
+                        <div class="feature-desc">List, create, edit, show and delete - generated from a resource class.</div>
                     </div>
                     <div class="feature">
                         <span class="material-symbols-rounded">edit_note</span>
                         <div class="feature-title">17 field types</div>
-                        <div class="feature-desc">Text, rich editor, media, relations, repeater, SEO — with tabs, sections and conditional fields.</div>
+                        <div class="feature-desc">Text, rich editor, media, relations, repeater, SEO - with tabs, sections and conditional fields.</div>
                     </div>
                     <div class="feature">
                         <span class="material-symbols-rounded">search</span>
@@ -133,7 +133,7 @@
         <section id="install">
             <div class="doc-header">
                 <h2 class="doc-component-name">Installation</h2>
-                <p class="doc-component-desc">Requires PHP 8.2+ and Laravel 11+, plus the GD extension for image optimisation (without it, uploads are stored as-is). No JS build step — assets ship pre-built.</p>
+                <p class="doc-component-desc">Requires PHP 8.2+ and Laravel 11+, plus the GD extension for image optimisation (without it, uploads are stored as-is). No JS build step - assets ship pre-built.</p>
             </div>
 
             <div class="doc-section">
@@ -144,7 +144,7 @@
 php artisan yurba:install   # publishes config + assets, creates app/Admin
 php artisan migrate         # media, revisions, seo, redirects, content, translations, optimization-log tables</code></pre>
                     </div>
-                    <p class="note">The service provider is auto-discovered. The panel lives at <code>/admin</code> — change the prefix in <code>config/yurba.php</code>.</p>
+                    <p class="note">The service provider is auto-discovered. The panel lives at <code>/admin</code> - change the prefix in <code>config/yurba.php</code>.</p>
                 </div>
             </div>
 
@@ -154,7 +154,7 @@ php artisan migrate         # media, revisions, seo, redirects, content, transla
                     <div class="code-block">
                         <pre><code class="language-php">use Yurba\Cmf\Facades\Yurba;
 
-// in a service provider — any truthy check
+// in a service provider - any truthy check
 Yurba::authorizeUsing(fn ($user) => $user->is_admin);</code></pre>
                     </div>
                     <p class="note">Without a custom rule, a truthy <code>is_admin</code> attribute is required.</p>
@@ -163,7 +163,7 @@ Yurba::authorizeUsing(fn ($user) => $user->is_admin);</code></pre>
 
             <div class="doc-section">
                 <div class="doc-section-title">First login</div>
-                <p>The panel authenticates against your app's <code>guard</code> (<code>web</code> by default) — it needs an existing user your gate approves. YurbaCMF ships no user table of its own; it reuses Laravel's auth. Flag a user from Tinker (<code>php artisan tinker</code>):</p>
+                <p>The panel authenticates against your app's <code>guard</code> (<code>web</code> by default) - it needs an existing user your gate approves. YurbaCMF ships no user table of its own; it reuses Laravel's auth. Flag a user from Tinker (<code>php artisan tinker</code>):</p>
                 <div class="code-block">
                     <pre><code class="language-php">$user = App\Models\User::first();   // or User::factory()->create([...])
 $user->is_admin = true;
@@ -180,7 +180,7 @@ $user->save();</code></pre>
 php artisan vendor:publish --tag=yurba-assets --force
 php artisan migrate</code></pre>
                 </div>
-                <p class="note">Refresh with the <code>yurba-assets</code> tag, not <code>yurba:install --force</code> — the latter also overwrites your <code>config/yurba.php</code>.</p>
+                <p class="note">Refresh with the <code>yurba-assets</code> tag, not <code>yurba:install --force</code> - the latter also overwrites your <code>config/yurba.php</code>.</p>
             </div>
         </section>
 
@@ -195,7 +195,7 @@ php artisan migrate</code></pre>
             <div class="doc-section">
                 <div class="doc-section-title">1. Model &amp; migration</div>
                 <div class="gap-stack">
-                    <p>YurbaCMF reads and writes your Eloquent model directly — no traits, no base class. Just give it the columns and casts your fields expect (see <a href="#modelsetup">Model setup</a> for the full mapping).</p>
+                    <p>YurbaCMF reads and writes your Eloquent model directly - no traits, no base class. Just give it the columns and casts your fields expect (see <a href="#modelsetup">Model setup</a> for the full mapping).</p>
                     <div class="code-block">
                         <pre><code class="language-php">// database/migrations/xxxx_create_posts_table.php
 Schema::create('posts', function (Blueprint $table) {
@@ -265,13 +265,13 @@ class PostResource extends Resource
     App\Admin\PostResource::class,
 ],</code></pre>
                     </div>
-                    <p class="note">Prefer to skip the boilerplate? Scaffold the class from an existing table — <code>php artisan yurba:resource Post --from-schema --register</code> maps each column to a sensible field and registers it for you.</p>
+                    <p class="note">Prefer to skip the boilerplate? Scaffold the class from an existing table - <code>php artisan yurba:resource Post --from-schema --register</code> maps each column to a sensible field and registers it for you.</p>
                 </div>
             </div>
 
             <div class="doc-section">
                 <div class="doc-section-title">That's it</div>
-                <p>Open <code>/admin</code> and "Posts" is in the sidebar with a full CRUD screen: a searchable, sortable list; create/edit forms with validation; and a detail view. From here everything else is a one-line addition to the same <code>fields()</code> array or resource — <a href="#filters">filters</a>, <a href="#actions">row &amp; bulk actions</a>, <a href="#workflow">revisions &amp; scheduled publishing</a>, or <a href="#seo">SEO fields</a>.</p>
+                <p>Open <code>/admin</code> and "Posts" is in the sidebar with a full CRUD screen: a searchable, sortable list; create/edit forms with validation; and a detail view. From here everything else is a one-line addition to the same <code>fields()</code> array or resource - <a href="#filters">filters</a>, <a href="#actions">row &amp; bulk actions</a>, <a href="#workflow">revisions &amp; scheduled publishing</a>, or <a href="#seo">SEO fields</a>.</p>
             </div>
         </section>
 
@@ -280,7 +280,7 @@ class PostResource extends Resource
         <section id="modelsetup">
             <div class="doc-header">
                 <h2 class="doc-component-name">Model setup</h2>
-                <p class="doc-component-desc">The panel reads and writes your Eloquent model directly, so give it the columns and casts the fields expect. This is ordinary Laravel — no traits or base class to add.</p>
+                <p class="doc-component-desc">The panel reads and writes your Eloquent model directly, so give it the columns and casts the fields expect. This is ordinary Laravel - no traits or base class to add.</p>
             </div>
 
             <div class="doc-section">
@@ -290,16 +290,16 @@ class PostResource extends Resource
                         <tr><th>Field</th><th>Column</th><th>Cast</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>Text</code> / <code>Email</code> / <code>Slug</code> / <code>Select</code></td><td>string</td><td>—</td></tr>
-                        <tr><td><code>Textarea</code> / <code>Editor</code></td><td>text / longText</td><td>—</td></tr>
-                        <tr><td><code>Number</code></td><td>integer / decimal</td><td>—</td></tr>
+                        <tr><td><code>Text</code> / <code>Email</code> / <code>Slug</code> / <code>Select</code></td><td>string</td><td>-</td></tr>
+                        <tr><td><code>Textarea</code> / <code>Editor</code></td><td>text / longText</td><td>-</td></tr>
+                        <tr><td><code>Number</code></td><td>integer / decimal</td><td>-</td></tr>
                         <tr><td><code>Boolean</code></td><td>boolean</td><td><code>'boolean'</code> (recommended)</td></tr>
                         <tr><td><code>Date</code></td><td>date / timestamp</td><td><code>'datetime'</code> <strong>(required)</strong></td></tr>
                         <tr><td><code>Tags</code> / <code>Repeater</code></td><td>json</td><td><code>'array'</code> <strong>(required)</strong></td></tr>
-                        <tr><td><code>Image</code> / <code>Media</code></td><td>string</td><td>— (stores a URL)</td></tr>
-                        <tr><td><code>BelongsTo</code></td><td>foreign key, e.g. <code>category_id</code></td><td>—</td></tr>
-                        <tr><td><code>BelongsToMany</code></td><td>none — a pivot table + relation</td><td>—</td></tr>
-                        <tr><td><code>Computed</code> / <code>SeoField</code></td><td>none — virtual</td><td>—</td></tr>
+                        <tr><td><code>Image</code> / <code>Media</code></td><td>string</td><td>- (stores a URL)</td></tr>
+                        <tr><td><code>BelongsTo</code></td><td>foreign key, e.g. <code>category_id</code></td><td>-</td></tr>
+                        <tr><td><code>BelongsToMany</code></td><td>none - a pivot table + relation</td><td>-</td></tr>
+                        <tr><td><code>Computed</code> / <code>SeoField</code></td><td>none - virtual</td><td>-</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -347,7 +347,7 @@ class Post extends Model
         <section id="resource">
             <div class="doc-header">
                 <h2 class="doc-component-name">Resource reference</h2>
-                <p class="doc-component-desc">A resource is a class in <code>App\Admin</code> extending <code>Yurba\Cmf\Resources\Resource</code>. Declare a model and its fields; override any member below to shape the screen — each has a sensible default.</p>
+                <p class="doc-component-desc">A resource is a class in <code>App\Admin</code> extending <code>Yurba\Cmf\Resources\Resource</code>. Declare a model and its fields; override any member below to shape the screen - each has a sensible default.</p>
             </div>
 
             <div class="doc-section">
@@ -357,8 +357,8 @@ class Post extends Model
                         <tr><th>Member</th><th>Default</th><th>Purpose</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>static $model</code></td><td>—</td><td><strong>Required.</strong> The Eloquent model class.</td></tr>
-                        <tr><td><code>fields()</code></td><td>—</td><td><strong>Required.</strong> The field set — drives the table, form, validation and persistence.</td></tr>
+                        <tr><td><code>static $model</code></td><td>-</td><td><strong>Required.</strong> The Eloquent model class.</td></tr>
+                        <tr><td><code>fields()</code></td><td>-</td><td><strong>Required.</strong> The field set - drives the table, form, validation and persistence.</td></tr>
                         <tr><td><code>label()</code> / <code>pluralLabel()</code></td><td>from class name</td><td>Singular / plural display name.</td></tr>
                         <tr><td><code>uriKey()</code></td><td>kebab-plural</td><td>URL segment, e.g. <code>blog-posts</code>.</td></tr>
                         <tr><td><code>icon()</code></td><td><code>null</code></td><td>Sidebar icon (raw HTML, e.g. a Material Symbols <code>&lt;span&gt;</code>).</td></tr>
@@ -456,7 +456,7 @@ class PostResource extends Resource
                         <tr><td><code>BelongsToMany</code></td><td>Many-to-many multi-select; syncs the pivot on save.</td></tr>
                         <tr><td><code>Repeater</code></td><td>Editable table/cards of rows in an array/JSON column.</td></tr>
                         <tr><td><code>Computed</code></td><td>Display-only value derived from a callback.</td></tr>
-                        <tr><td><code>SeoField</code></td><td>Meta title/description, OG image, noindex — stored polymorphically.</td></tr>
+                        <tr><td><code>SeoField</code></td><td>Meta title/description, OG image, noindex - stored polymorphically.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -475,14 +475,14 @@ class PostResource extends Resource
                         <tr><td><code>-&gt;visibleWhen('status', 'publish')</code></td><td>Show the field only when another field matches.</td></tr>
                         <tr><td><code>-&gt;readonly()</code></td><td>Render read-only; submitted value ignored on save.</td></tr>
                         <tr><td><code>-&gt;default($v)</code> / <code>-&gt;placeholder($s)</code> / <code>-&gt;help($s)</code></td><td>Default value, placeholder, help text.</td></tr>
-                        <tr><td><code>-&gt;thumb('small')</code></td><td>Image / Media fields — thumbnail preset (or pixel width) rendered on the index. See <a href="#media">Media library</a>.</td></tr>
+                        <tr><td><code>-&gt;thumb('small')</code></td><td>Image / Media fields - thumbnail preset (or pixel width) rendered on the index. See <a href="#media">Media library</a>.</td></tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="doc-section">
                 <div class="doc-section-title">Putting it together</div>
-                <p>A realistic <code>fields()</code> mixing scalar, choice and content fields — each with the modifiers it needs:</p>
+                <p>A realistic <code>fields()</code> mixing scalar, choice and content fields - each with the modifiers it needs:</p>
                 <div class="code-block">
                     <pre><code class="language-php">use Yurba\Cmf\Fields\{Text, Number, Boolean, Select, Date, Image, Editor, Computed, SeoField};
 
@@ -515,19 +515,19 @@ public function fields(): array
                 <div class="code-block">
                     <pre><code class="language-php">use Yurba\Cmf\Fields\{BelongsTo, BelongsToMany, Repeater, Date, Image, Tags};
 
-// FK select — field name is the FK column; say which model and title column
+// FK select - field name is the FK column; say which model and title column
 BelongsTo::make('category_id', 'Category')
     ->relatedModel(Category::class)
     ->title('name')
     ->nullable(),
 
-// many-to-many multi-select — synced to the pivot after save.
+// many-to-many multi-select - synced to the pivot after save.
 // field name is the relation method (override with ->relation('...'))
 BelongsToMany::make('tags')
     ->relatedModel(Tag::class)
     ->title('name'),
 
-// repeating rows in a json column — declare the columns
+// repeating rows in a json column - declare the columns
 Repeater::make('specs')
     ->columns(['label' => 'Label', 'value' => 'Value'])
     ->addLabel('Add spec')
@@ -537,12 +537,12 @@ Date::make('published_at')->withTime(),
 Image::make('cover')->dir('covers'),
 Tags::make('keywords'),</code></pre>
                 </div>
-                <p class="note"><code>BelongsTo</code> throws without <code>-&gt;relatedModel()</code>. <code>Tags</code> and <code>Repeater</code> need an <code>'array'</code>-cast column — see <a href="#modelsetup">Model setup</a>. A repeater column can be text (default), or an array opting into <code>'textarea' =&gt; true</code>, <code>'image' =&gt; true</code> (upload per row, <code>'dir'</code>), or <code>'editor' =&gt; true</code> (rich text) — handy for galleries, sliders and repeating rich-content blocks.</p>
+                <p class="note"><code>BelongsTo</code> throws without <code>-&gt;relatedModel()</code>. <code>Tags</code> and <code>Repeater</code> need an <code>'array'</code>-cast column - see <a href="#modelsetup">Model setup</a>. A repeater column can be text (default), or an array opting into <code>'textarea' =&gt; true</code>, <code>'image' =&gt; true</code> (upload per row, <code>'dir'</code>), or <code>'editor' =&gt; true</code> (rich text) - handy for galleries, sliders and repeating rich-content blocks.</p>
             </div>
 
             <div class="doc-section">
                 <div class="doc-section-title">Custom fields</div>
-                <p>Need a control that isn't built in? Scaffold one with <code>php artisan yurba:field ColorPicker</code> — it generates a <code>Field</code> subclass and a Blade partial. Implement <code>component()</code> (the partial to render) and, when the input needs special handling, <code>fill()</code>; then use it in <code>fields()</code> like any other field.</p>
+                <p>Need a control that isn't built in? Scaffold one with <code>php artisan yurba:field ColorPicker</code> - it generates a <code>Field</code> subclass and a Blade partial. Implement <code>component()</code> (the partial to render) and, when the input needs special handling, <code>fill()</code>; then use it in <code>fields()</code> like any other field.</p>
             </div>
         </section>
 
@@ -641,8 +641,8 @@ public function runBulk(string $action, Collection $records): void
                         <tr><th>Member</th><th>Default</th><th>Purpose</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>canExport()</code></td><td><code>true</code></td><td>Show <strong>Export CSV</strong> — respects the active filters &amp; search.</td></tr>
-                        <tr><td><code>canImport()</code></td><td><code>false</code></td><td>Enable <strong>Import CSV</strong> — upsert rows by primary key.</td></tr>
+                        <tr><td><code>canExport()</code></td><td><code>true</code></td><td>Show <strong>Export CSV</strong> - respects the active filters &amp; search.</td></tr>
+                        <tr><td><code>canImport()</code></td><td><code>false</code></td><td>Enable <strong>Import CSV</strong> - upsert rows by primary key.</td></tr>
                         <tr><td><code>exportColumns()</code></td><td>pk + field columns</td><td>Columns written, so an export round-trips back through import.</td></tr>
                     </tbody>
                 </table>
@@ -681,7 +681,7 @@ public function revisionsLimit(): int { return 50; }</code></pre>
     ];
 }</code></pre>
                 </div>
-                <p class="note"><strong>Requires the scheduler.</strong> With <code>publish_scheduler</code> on (default) the package registers the every-minute command for you — you only need Laravel's scheduler running in production:</p>
+                <p class="note"><strong>Requires the scheduler.</strong> With <code>publish_scheduler</code> on (default) the package registers the every-minute command for you - you only need Laravel's scheduler running in production:</p>
                 <div class="code-block">
                     <pre><code class="language-bash"># a single cron entry drives Laravel's scheduler
 * * * * * cd /path/to/app &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code></pre>
@@ -707,7 +707,7 @@ Route::get('/blog/{post}', PostController::class)
 
             <div class="doc-section">
                 <div class="doc-section-title">Soft-delete trash</div>
-                <p>If the model uses Laravel's <code>SoftDeletes</code> trait, YurbaCMF detects it and adds a trash view — filter to trashed rows, restore, or delete permanently. No configuration needed.</p>
+                <p>If the model uses Laravel's <code>SoftDeletes</code> trait, YurbaCMF detects it and adds a trash view - filter to trashed rows, restore, or delete permanently. No configuration needed.</p>
             </div>
         </section>
 
@@ -721,7 +721,7 @@ Route::get('/blog/{post}', PostController::class)
 
             <div class="doc-section">
                 <div class="doc-section-title">The SEO field</div>
-                <p>Add <code>SeoField::make()</code> to a resource to edit meta title, description, OG image and a <code>noindex</code> flag. Values live in the shared <code>yurba_seo</code> table keyed to the record — nothing to migrate on your model.</p>
+                <p>Add <code>SeoField::make()</code> to a resource to edit meta title, description, OG image and a <code>noindex</code> flag. Values live in the shared <code>yurba_seo</code> table keyed to the record - nothing to migrate on your model.</p>
                 <div class="code-block">
                     <pre><code class="language-php">use Yurba\Cmf\Fields\SeoField;
 
@@ -737,7 +737,7 @@ public function fields(): array
 
             <div class="doc-section">
                 <div class="doc-section-title">Rendering on the frontend</div>
-                <p>Resolve the block with <code>Seo::resolve($model, $fallback)</code> — it returns the stored values, falling back to whatever you pass, plus a <code>noindex</code> boolean.</p>
+                <p>Resolve the block with <code>Seo::resolve($model, $fallback)</code> - it returns the stored values, falling back to whatever you pass, plus a <code>noindex</code> boolean.</p>
                 <div class="code-block">
                     <pre><code class="language-php">use Yurba\Cmf\Seo\Seo;
 
@@ -756,7 +756,7 @@ $meta = Seo::resolve($post, [
 
             <div class="doc-section">
                 <div class="doc-section-title">Sitemap &amp; redirects</div>
-                <p>The public <code>/sitemap.xml</code> combines <code>static</code> URLs with model-driven <code>sources</code> (see <a href="#config">Configuration → Sitemap</a>); records flagged <code>noindex</code> are excluded. Split a large site into several named files with <code>sitemaps</code> — the top level then becomes a sitemap index over <code>/sitemap-{name}.xml</code>. The redirect manager stores old → new URL pairs and applies them through global middleware, optionally counting hits.</p>
+                <p>The public <code>/sitemap.xml</code> combines <code>static</code> URLs with model-driven <code>sources</code> (see <a href="#config">Configuration → Sitemap</a>); records flagged <code>noindex</code> are excluded. Split a large site into several named files with <code>sitemaps</code> - the top level then becomes a sitemap index over <code>/sitemap-{name}.xml</code>. The redirect manager stores old → new URL pairs and applies them through global middleware, optionally counting hits.</p>
             </div>
         </section>
 
@@ -775,7 +775,7 @@ $meta = Seo::resolve($post, [
                         <tr><th>Field</th><th>Stores</th><th>When to use</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>Media</code></td><td>library reference</td><td>Reusable assets — pick from the library or upload into it.</td></tr>
+                        <tr><td><code>Media</code></td><td>library reference</td><td>Reusable assets - pick from the library or upload into it.</td></tr>
                         <tr><td><code>Image</code></td><td>web path</td><td>A one-off upload straight to <code>public/{dir}</code>.</td></tr>
                     </tbody>
                 </table>
@@ -795,20 +795,20 @@ Image::make('thumbnail')->dir('thumbs'),</code></pre>
 
             <div class="doc-section">
                 <div class="doc-section-title">Thumbnails</div>
-                <p>Thumbnails are <strong>generated on demand</strong>, not at upload time: the first request for a size renders it and caches it under <code>{dir}-thumbs/{width}/</code>, served statically thereafter. Sizes come from the named <code>thumb_presets</code> (<code>small</code> / <code>medium</code> / <code>large</code>) — or any raw pixel width.</p>
+                <p>Thumbnails are <strong>generated on demand</strong>, not at upload time: the first request for a size renders it and caches it under <code>{dir}-thumbs/{width}/</code>, served statically thereafter. Sizes come from the named <code>thumb_presets</code> (<code>small</code> / <code>medium</code> / <code>large</code>) - or any raw pixel width.</p>
                 <p>Declare the size an image field should render on the index with <code>-&gt;thumb()</code>; on the frontend, resolve one with <code>Media::thumb()</code>. Both return the original image untouched when a thumbnail can't be derived (optimisation off, non-raster file, unknown preset).</p>
                 <div class="code-block">
                     <pre><code class="language-php">use Yurba\Cmf\Fields\Media;
 use Yurba\Cmf\Media\Media as MediaFile;
 
-// in a resource — render the 'small' preset in the table
+// in a resource - render the 'small' preset in the table
 Media::make('cover')->thumb('small'),
 
-// on the frontend — a preset name or a raw width
+// on the frontend - a preset name or a raw width
 &lt;img src="{{ MediaFile::thumb($post->cover, 'large') }}" alt=""&gt;
 &lt;img src="{{ MediaFile::thumb($post->cover, 800) }}" alt=""&gt;</code></pre>
                 </div>
-                <p class="note">The <strong>Image usage &amp; thumbnails</strong> screen (linked from <strong>Settings → Panel</strong>) lists where each library image is used and which thumbnails exist, and lets you generate or delete thumbnails — per row, in bulk, or across the whole library — and remove unused files.</p>
+                <p class="note">The <strong>Image usage &amp; thumbnails</strong> screen (linked from <strong>Settings → Panel</strong>) lists where each library image is used and which thumbnails exist, and lets you generate or delete thumbnails - per row, in bulk, or across the whole library - and remove unused files.</p>
             </div>
         </section>
 
@@ -969,7 +969,7 @@ return [
             </div>
 
             <div class="doc-section">
-                <div class="doc-section-title">Media library — <code>media</code></div>
+                <div class="doc-section-title">Media library - <code>media</code></div>
                 <table class="api-table">
                     <thead>
                         <tr><th>Key</th><th>Default</th><th>Description</th></tr>
@@ -994,7 +994,7 @@ return [
             </div>
 
             <div class="doc-section">
-                <div class="doc-section-title">Editor uploads — <code>uploads</code></div>
+                <div class="doc-section-title">Editor uploads - <code>uploads</code></div>
                 <p class="note">Inline image uploads from the Editor field. Files are moved under <code>public/{dir}</code>.</p>
                 <table class="api-table">
                     <thead>
@@ -1009,7 +1009,7 @@ return [
             </div>
 
             <div class="doc-section">
-                <div class="doc-section-title">Editor driver — <code>editor</code></div>
+                <div class="doc-section-title">Editor driver - <code>editor</code></div>
                 <table class="api-table">
                     <thead>
                         <tr><th>Key</th><th>Default</th><th>Description</th></tr>
@@ -1023,13 +1023,13 @@ return [
             </div>
 
             <div class="doc-section">
-                <div class="doc-section-title">UI enhancements — <code>ui</code></div>
+                <div class="doc-section-title">UI enhancements - <code>ui</code></div>
                 <table class="api-table">
                     <thead>
                         <tr><th>Key</th><th>Default</th><th>Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code>select</code></td><td><code>true</code></td><td>YurbaUI enhanced <code>&lt;select&gt;</code> control (else native).</td></tr>
+                        <tr><td><code>select</code></td><td><code>true</code></td><td>Load YurbaUI: enhanced <code>&lt;select&gt;</code> controls, filter dropdown and media picker modal, plus the editor build that opens its menus and dialogs through YurbaUI (off: native controls and the standalone editor).</td></tr>
                         <tr><td><code>viewer</code></td><td><code>true</code></td><td>YurbaPV click-to-zoom image lightbox.</td></tr>
                         <tr><td><code>icons</code></td><td><code>true</code></td><td>Load the Material Symbols icon font (off to self-host).</td></tr>
                     </tbody>
@@ -1037,7 +1037,7 @@ return [
             </div>
 
             <div class="doc-section">
-                <div class="doc-section-title">Sitemap — <code>sitemap</code></div>
+                <div class="doc-section-title">Sitemap - <code>sitemap</code></div>
                 <table class="api-table">
                     <thead>
                         <tr><th>Key</th><th>Default</th><th>Description</th></tr>
@@ -1045,7 +1045,7 @@ return [
                     <tbody>
                         <tr><td><code>enabled</code></td><td><code>true</code></td><td>Serve the public <code>/sitemap.xml</code>.</td></tr>
                         <tr><td><code>static</code></td><td><code>[]</code></td><td>Extra URLs added verbatim (each <code>loc</code> + optional <code>changefreq</code>/<code>priority</code>).</td></tr>
-                        <tr><td><code>sources</code></td><td><code>[]</code></td><td>Model-driven URL sets — one entry per content type (keys below).</td></tr>
+                        <tr><td><code>sources</code></td><td><code>[]</code></td><td>Model-driven URL sets - one entry per content type (keys below).</td></tr>
                         <tr><td><code>sitemaps</code></td><td><code>[]</code></td><td>Optional named sub-sitemaps (<code>name =&gt; ['static' =&gt; …, 'sources' =&gt; …]</code>). When set, the top level becomes a sitemap index.</td></tr>
                     </tbody>
                 </table>
@@ -1054,7 +1054,7 @@ return [
             </div>
 
             <div class="doc-section">
-                <div class="doc-section-title">Redirects — <code>redirects</code></div>
+                <div class="doc-section-title">Redirects - <code>redirects</code></div>
                 <table class="api-table">
                     <thead>
                         <tr><th>Key</th><th>Default</th><th>Description</th></tr>
@@ -1072,12 +1072,12 @@ return [
         <section id="settings">
             <div class="doc-header">
                 <h2 class="doc-component-name">Settings pages</h2>
-                <p class="doc-component-desc">Group editable options into a settings tab. Values persist to a JSON store under <code>storage/app</code> — no database, no migration.</p>
+                <p class="doc-component-desc">Group editable options into a settings tab. Values persist to a JSON store under <code>storage/app</code> - no database, no migration.</p>
             </div>
 
             <div class="doc-section">
                 <div class="doc-section-title">Define a page</div>
-                <p>Extend <code>SettingsPage</code> and return a set of fields — the same field classes resources use. Scaffold with <code>php artisan yurba:settings General</code>.</p>
+                <p>Extend <code>SettingsPage</code> and return a set of fields - the same field classes resources use. Scaffold with <code>php artisan yurba:settings General</code>.</p>
                 <div class="code-block">
                     <pre><code class="language-php">namespace App\Admin\Settings;
 
@@ -1117,7 +1117,7 @@ $down  = (bool) Store::get('maintenance', false);</code></pre>
         <section id="pages">
             <div class="doc-header">
                 <h2 class="doc-component-name">Custom pages</h2>
-                <p class="doc-component-desc">Not everything is a CRUD table. A <strong>page</strong> is your own screen — a bespoke editor, dashboard or report — that gets a sidebar entry and renders inside the panel shell. Register classes extending <code>Yurba\Cmf\Pages\Page</code> under <code>pages</code> in the config.</p>
+                <p class="doc-component-desc">Not everything is a CRUD table. A <strong>page</strong> is your own screen - a bespoke editor, dashboard or report - that gets a sidebar entry and renders inside the panel shell. Register classes extending <code>Yurba\Cmf\Pages\Page</code> under <code>pages</code> in the config.</p>
             </div>
 
             <div class="doc-section">
@@ -1130,7 +1130,7 @@ $down  = (bool) Store::get('maintenance', false);</code></pre>
                         <tr><td><code>render($request)</code></td><td><strong>GET.</strong> Return a view or HTML string (wrapped in the panel chrome), or a full <code>Response</code> (used as-is).</td></tr>
                         <tr><td><code>handle($request)</code></td><td><strong>POST.</strong> Process a submit; redirects back by default.</td></tr>
                         <tr><td><code>label()</code> / <code>uriKey()</code> / <code>icon()</code></td><td>Sidebar name, URL segment (<code>{prefix}/pages/{uriKey}</code>) and optional icon.</td></tr>
-                        <tr><td><code>canView($user)</code></td><td>Authorization — hide the screen from users who fail it.</td></tr>
+                        <tr><td><code>canView($user)</code></td><td>Authorization - hide the screen from users who fail it.</td></tr>
                         <tr><td><code>inNav()</code></td><td><code>true</code>; return <code>false</code> to keep the screen routable but out of the sidebar (e.g. reached from a hub).</td></tr>
                         <tr><td><code>group()</code></td><td><code>null</code>; return a label to list the screen under a sidebar heading (like the Resources / Settings groups).</td></tr>
                     </tbody>
@@ -1162,7 +1162,7 @@ class ReportsPage extends Page
     }
 }</code></pre>
                 </div>
-                <p class="note">Register it under <code>pages</code> — as a class string, a <code>[Class, ...args]</code> tuple to pass constructor arguments (stays <code>config:cache</code>-safe, so one parameterised page class can back several entries), or a ready instance. The view returns page content only — YurbaCMF wraps it in the sidebar + header — and it's served at <code>/admin/pages/reports</code>.</p>
+                <p class="note">Register it under <code>pages</code> - as a class string, a <code>[Class, ...args]</code> tuple to pass constructor arguments (stays <code>config:cache</code>-safe, so one parameterised page class can back several entries), or a ready instance. The view returns page content only - YurbaCMF wraps it in the sidebar + header - and it's served at <code>/admin/pages/reports</code>.</p>
             </div>
         </section>
 
@@ -1171,7 +1171,7 @@ class ReportsPage extends Page
         <section id="content">
             <div class="doc-header">
                 <h2 class="doc-component-name">Content pages</h2>
-                <p class="doc-component-desc">Editable site copy where <strong>each page has its own structure</strong>. A content page declares its own <code>fields()</code> (any field types — <code>Repeater</code> for repeating blocks, <code>Image</code>/<code>Media</code>, <code>Editor</code>…) and its values are stored as one JSON document per page. Extend <code>Yurba\Cmf\Content\ContentPage</code> and register it under <code>pages</code> like any custom page.</p>
+                <p class="doc-component-desc">Editable site copy where <strong>each page has its own structure</strong>. A content page declares its own <code>fields()</code> (any field types - <code>Repeater</code> for repeating blocks, <code>Image</code>/<code>Media</code>, <code>Editor</code>…) and its values are stored as one JSON document per page. Extend <code>Yurba\Cmf\Content\ContentPage</code> and register it under <code>pages</code> like any custom page.</p>
             </div>
 
             <div class="doc-section">
@@ -1195,13 +1195,13 @@ class HomeContent extends ContentPage
             Text::make('hero_title'),
             Editor::make('intro'),
             Image::make('hero_bg')->dir('content'),
-            // repeating blocks — the whole point of per-page structure
+            // repeating blocks - the whole point of per-page structure
             Repeater::make('features')->columns(['title' => 'Title', 'text' => 'Text']),
         ];
     }
 }</code></pre>
                 </div>
-                <p class="note">A simple page is just <code>Text::make('title')</code> + <code>Editor::make('body')</code>; a rich one adds repeaters, images and conditional fields — same field API as resources, including <code>-&gt;tab('SEO')</code> to split a long form into tabs.</p>
+                <p class="note">A simple page is just <code>Text::make('title')</code> + <code>Editor::make('body')</code>; a rich one adds repeaters, images and conditional fields - same field API as resources, including <code>-&gt;tab('SEO')</code> to split a long form into tabs.</p>
             </div>
 
             <div class="doc-section">
@@ -1215,7 +1215,7 @@ $title = Content::field('home', 'hero_title', 'Welcome');
 // or the global shorthand (same thing), handy in Blade:
 content('home', 'hero_title', 'Welcome');</code></pre>
                 </div>
-                <p class="note">Values persist to the package's <code>yurba_content</code> table — one JSON row per page (keyed by <code>uriKey()</code>). No per-field columns, so the schema is free to change.</p>
+                <p class="note">Values persist to the package's <code>yurba_content</code> table - one JSON row per page (keyed by <code>uriKey()</code>). No per-field columns, so the schema is free to change.</p>
             </div>
         </section>
 
@@ -1265,7 +1265,7 @@ content('home', 'hero_title', 'Welcome');</code></pre>
 
             <div class="doc-section">
                 <div class="doc-section-title">How strings are translated</div>
-                <p>Interface strings are plain English keys resolved through Laravel's JSON translations (<code>__('Save changes')</code>). English renders the key verbatim — no file needed — while <code>ru</code> and <code>uk</code> are backed by the bundled <code>lang/{locale}.json</code>. Publish them to override wording or add your own locale:</p>
+                <p>Interface strings are plain English keys resolved through Laravel's JSON translations (<code>__('Save changes')</code>). English renders the key verbatim - no file needed - while <code>ru</code> and <code>uk</code> are backed by the bundled <code>lang/{locale}.json</code>. Publish them to override wording or add your own locale:</p>
                 <div class="code-block">
                     <pre><code class="language-bash">php artisan vendor:publish --tag=yurba-lang   # copies lang/{ru,uk}.json into your app</code></pre>
                 </div>
@@ -1278,7 +1278,7 @@ content('home', 'hero_title', 'Welcome');</code></pre>
         <section id="translations">
             <div class="doc-header">
                 <h2 class="doc-component-name">Content translation</h2>
-                <p class="doc-component-desc">Separate from the panel interface, your content can be translated per locale. Add a trait to the model and mark fields translatable — the form gains a language bar and stores per-locale values in <code>yurba_translations</code>, with the base row keeping the default locale.</p>
+                <p class="doc-component-desc">Separate from the panel interface, your content can be translated per locale. Add a trait to the model and mark fields translatable - the form gains a language bar and stores per-locale values in <code>yurba_translations</code>, with the base row keeping the default locale.</p>
             </div>
 
             <div class="doc-section">
@@ -1376,7 +1376,7 @@ Editor::make('body')->translatable();</code></pre>
         <section id="dependencies">
             <div class="doc-header">
                 <h2 class="doc-component-name">Dependencies</h2>
-                <p class="doc-component-desc">Nothing beyond Laravel on the PHP side. The UI bundles a few small, self-contained front-end libraries — and every one of them is optional, toggled from <code>config/yurba.php</code>.</p>
+                <p class="doc-component-desc">Nothing beyond Laravel on the PHP side. The UI bundles a few small, self-contained front-end libraries - and every one of them is optional, toggled from <code>config/yurba.php</code>.</p>
             </div>
             <div class="doc-section">
                 <div class="doc-section-title">Bundled front-end</div>
@@ -1387,7 +1387,7 @@ Editor::make('body')->translatable();</code></pre>
                     <tbody>
                         <tr>
                             <td><a href="https://github.com/yurba-dev/yurba-ui" target="_blank" rel="noopener">YurbaUI</a></td>
-                            <td>Enhanced select / dropdown controls.</td>
+                            <td>Enhanced select / dropdown controls, modals and the editor's menus and dialogs.</td>
                             <td><code>ui.select =&gt; false</code></td>
                         </tr>
                         <tr>
@@ -1407,7 +1407,7 @@ Editor::make('body')->translatable();</code></pre>
                         </tr>
                     </tbody>
                 </table>
-                <p class="note"><strong>Everything here is optional.</strong> Turn any of them off in <code>config/yurba.php</code> and the panel gracefully falls back — a native <code>&lt;select&gt;</code>, a plain <code>&lt;textarea&gt;</code>, no lightbox, or self-hosted icons — with no other changes needed.</p>
+                <p class="note"><strong>Everything here is optional.</strong> Turn any of them off in <code>config/yurba.php</code> and the panel gracefully falls back - a native <code>&lt;select&gt;</code>, a plain <code>&lt;textarea&gt;</code>, no lightbox, or self-hosted icons - with no other changes needed.</p>
             </div>
         </section>
 

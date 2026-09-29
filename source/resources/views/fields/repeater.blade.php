@@ -1,6 +1,10 @@
 @php($rows = $field->formValue($record))
 @php($cols = $field->columns)
-@php($stacked = $field->layout === 'stacked')
+@php($stacked = $field->layout == 'stacked')
+@if(collect($cols)->contains(fn ($c) => is_array($c) && ! empty($c['media'])))
+    {{-- before the rows: with no rows @once would otherwise emit the picker inside the inert <template> --}}
+    @include('yurba::partials.media-picker')
+@endif
 
 <div class="y-repeater {{ $stacked ? 'y-repeater--stacked' : '' }}" data-repeater>
     @if($stacked)

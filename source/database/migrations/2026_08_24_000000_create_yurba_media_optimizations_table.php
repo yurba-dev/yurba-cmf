@@ -4,7 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// log of image-optimization outcomes, surfaced in the "Optimization log" screen.
 return new class extends Migration
 {
     public function up(): void
@@ -13,10 +12,10 @@ return new class extends Migration
             $table->id();
             $table->string('path', 2048);
             $table->string('source', 32)->default('upload'); // upload | command
-            $table->string('status', 32);                    // optimized | skipped | unchanged
-            $table->string('reason', 512)->nullable();        // why it was skipped
-            $table->boolean('optimized')->default(false);     // original re-encoded/resized
-            $table->boolean('thumbnailed')->default(false);   // thumbnail generated
+            $table->string('status', 32); // optimized | skipped | unchanged
+            $table->string('reason', 512)->nullable();
+            $table->boolean('optimized')->default(false);
+            $table->boolean('thumbnailed')->default(false);
             $table->unsignedInteger('width')->nullable();
             $table->unsignedInteger('height')->nullable();
             $table->unsignedBigInteger('orig_size')->default(0);

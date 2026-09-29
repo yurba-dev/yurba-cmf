@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-// a model attribute rendered as a form control + table cell, with its rules
 abstract class Field
 {
     public string $name;
@@ -16,27 +15,24 @@ abstract class Field
     public bool $searchable = false;
     public bool $onIndex = true;
     public bool $onForm = true;
+    public bool $onDetail = true;
+    public bool $exportable = true;
     public ?string $placeholder = null;
     public mixed $default = null;
     public ?string $help = null;
 
-    // optional links shown as buttons under the help text: [['url' => .., 'label' => ..], ...]
     public array $helpLinks = [];
 
-    // preferred thumbnail size for image fields: preset name or pixel width; null = original.
+    // preset name or pixel width; null = original
     public int|string|null $thumb = null;
 
-    // multilingual: translatable holds a separate value per locale; copyOnCreate
-    // seeds a new locale from the default one, then diverges. shared (the default)
-    // keeps one value across every locale.
+    // translatable: a value per locale; copyOnCreate: a new locale is seeded from the default one; otherwise one shared value
     public bool $translatable = false;
     public bool $copyOnCreate = false;
 
-    // form grouping: a tab and/or a titled section
     public ?string $tab = null;
     public ?string $section = null;
 
-    // rendered read-only, skipped on save
     public bool $readonly = false;
 
     // display-only, never validated or persisted
@@ -100,6 +96,30 @@ abstract class Field
         return $this;
     }
 
+    public function hideFromDetail(): static
+    {
+        $this->onDetail = false;
+
+        return $this;
+    }
+
+    public function hideFromExport(): static
+    {
+        $this->exportable = false;
+
+        return $this;
+    }
+
+    // password inputs and the model's $hidden attributes (hashes, tokens) never reach the detail page or a csv export, whatever the flags say
+    public function isSensitive(?Model $model = null): bool
+    {
+        if ($this instanceof Text && $this->type == 'password') {
+            return true;
+        }
+
+        return $model !== null && in_array($this->column(), $model->getHidden(), true);
+    }
+
     public function placeholder(string $p): static
     {
         $this->placeholder = $p;
@@ -121,7 +141,6 @@ abstract class Field
         return $this;
     }
 
-    // add a button-style link under the help text (call more than once for several)
     public function helpLink(string $url, string $label): static
     {
         $this->helpLinks[] = ['url' => $url, 'label' => $label];
@@ -129,7 +148,6 @@ abstract class Field
         return $this;
     }
 
-    // request a thumbnail size for this image field (preset name or pixel width).
     public function thumb(int|string $size): static
     {
         $this->thumb = $size;
@@ -137,7 +155,6 @@ abstract class Field
         return $this;
     }
 
-    // give this field its own value per locale (edited under each language tab)
     public function translatable(bool $v = true): static
     {
         $this->translatable = $v;
@@ -145,7 +162,6 @@ abstract class Field
         return $this;
     }
 
-    // translatable, but a new locale starts pre-filled from the default one
     public function copyOnCreate(bool $v = true): static
     {
         $this->translatable = true;
@@ -228,22 +244,20 @@ abstract class Field
         $model->{$this->column()} = $request->input($this->name);
     }
 
-    // preload this field's stored value onto a ContentPage record; multi-key
-    // fields (the SEO block) override to load all their keys
+    // multi-key fields (the SEO block) override this to load all their keys
     public function hydrate(Model $record, array $stored): void
     {
         $col = $this->column();
         $record->{$col} = $stored[$col] ?? $this->default;
     }
 
-    // runs after save; relation fields sync pivots here (needs the record to exist)
     public function afterSave(Request $request, Model $model): void
     {
     }
 
     abstract public function component(): string;
 
-    // index cell renderer: text | boolean | badge | image
+    // text | boolean | badge | image
     public function indexComponent(): string
     {
         return 'text';
