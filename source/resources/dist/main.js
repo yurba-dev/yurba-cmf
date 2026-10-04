@@ -443,14 +443,18 @@
         function add(root) {
             var body = root.querySelector('[data-repeater-body]')
             var tpl = root.querySelector('[data-repeater-template]')
-            var next = parseInt(root.dataset.next || body.children.length, 10)
+            // past the highest index in use: the row count repeats an index once a row is removed, and same-named inputs overwrite each other
+            var next = 0
+            body.querySelectorAll('[name]').forEach(function (el) {
+                var m = /^[^\[]+\[(\d+)\]/.exec(el.name)
+                if (m) next = Math.max(next, parseInt(m[1], 10) + 1)
+            })
             var html = tpl.innerHTML.replace(/__i__/g, String(next))
             // a <tr> only parses inside a table context
             var holder = document.createElement(body.tagName == 'TBODY' ? 'tbody' : 'div')
             holder.innerHTML = html
             var row = holder.firstElementChild
             body.appendChild(row)
-            root.dataset.next = String(next + 1)
             initEditor(row)
         }
         document.addEventListener('click', function (e) {

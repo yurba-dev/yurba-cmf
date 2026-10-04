@@ -24,7 +24,12 @@ class HandleRedirects
             return $next($request);
         }
 
-        $map = Redirect::map();
+        // global middleware: a missing table (package installed, not migrated yet) must not take every page down
+        try {
+            $map = Redirect::map();
+        } catch (\Throwable $e) {
+            return $next($request);
+        }
         if (! isset($map[$from])) {
             return $next($request);
         }
@@ -37,7 +42,8 @@ class HandleRedirects
             return $next($request);
         }
 
-        $to = Str::startsWith($target, ['http://', 'https://', '//'])
+        // same test as Redirect::internalPath(), so "HTTPS://..." isn't served as a local path
+        $to = preg_match('#^(https?:)?//#i', $target)
             ? $target
             : url('/'.ltrim($target, '/'));
 

@@ -40,7 +40,12 @@ trait HasTranslations
         $value = $this->translationValue($locale, $field);
 
         // a blank translation falls back too: an emptied editor field is stored as '', not null
-        return $value === null || $value === '' ? $this->{$field} : $value;
+        if ($value === null || $value === '') {
+            return $this->{$field};
+        }
+
+        // json-cast fields are stored encoded, like the base column
+        return $this->hasCast($field, ['array', 'json', 'object', 'collection']) ? $this->castAttribute($field, $value) : $value;
     }
 
     public function translationValue(string $locale, string $field): mixed

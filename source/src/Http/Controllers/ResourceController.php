@@ -85,9 +85,9 @@ class ResourceController extends Controller
                 ->find($request->integer('revision'));
 
             if ($loadedRevision) {
-                $data = $loadedRevision->data;
+                $data = (array) $loadedRevision->data;
                 unset($data[$record->getKeyName()], $data['created_at'], $data['updated_at']);
-                $record->forceFill($data);
+                $this->applyRevisionData($record, $data);
             }
         }
 
@@ -121,7 +121,8 @@ class ResourceController extends Controller
             ->except([$record->getKeyName(), $record->getCreatedAtColumn(), $record->getUpdatedAtColumn()])
             ->all();
 
-        $record->fill($data)->save();
+        $this->applyRevisionData($record, $data);
+        $record->save();
         $res->recordRevision($record, Yurba::user());
 
         return redirect()
@@ -306,8 +307,10 @@ class ResourceController extends Controller
         $record = $res->query()->findOrFail($id);
         abort_unless($res->canUpdate(Yurba::user(), $record), 403);
 
-        // resolve the label against the record's current state before mutating
-        $def = $res->rowActions($record)[$action] ?? $action;
+        // resolve against the record's current state before mutating: an action its row doesn't offer can't run
+        $actions = $res->rowActions($record);
+        abort_unless(isset($actions[$action]), 404);
+        $def = $actions[$action];
         $label = is_array($def) ? ($def['label'] ?? $action) : $def;
         $res->runAction($action, $record);
 
@@ -322,6 +325,13 @@ class ResourceController extends Controller
             $res->formFields(),
             fn (Field $f) => ! $f->virtual && $f->passesCondition($input)
         ));
+    }
+
+    // snapshots hold raw attributes: fill() would re-cast them (json columns double-encoded) and throws on a guarded model
+    protected function applyRevisionData(Model $record, array $data): void
+    {
+        $current = $record->getAttributes();
+        $record->setRawAttributes(array_merge($current, array_intersect_key($data, $current)));
     }
 
     protected function rulesFor(array $fields): array
@@ -385,7 +395,8 @@ class ResourceController extends Controller
                 continue;
             }
             if (array_key_exists($field->name, $values)) {
-                $record->{$field->name} = $values[$field->name];
+                // stored raw (json for array casts, see localizedValue), so it must not be cast again on the way in
+                $record->setRawAttributes(array_merge($record->getAttributes(), [$field->column() => $values[$field->name]]));
             } elseif (! $field->copyOnCreate) {
                 $record->{$field->name} = null;
             }

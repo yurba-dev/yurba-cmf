@@ -18,9 +18,12 @@
         <link rel="stylesheet" href="{{ asset('vendor/yurba/'.$editorBuild.'.css') }}?v={{ \Yurba\Cmf\Panel::assetVersion($editorBuild.'.css', \Yurba\Cmf\Fields\Editor::ASSET_VERSION) }}">
     @endif
     @if(config('yurba.ui.icons', true))
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded">
+        <link rel="stylesheet" href="{{ asset('vendor/yurba/fonts.css') }}?v={{ @filemtime(public_path('vendor/yurba/fonts.css')) }}">
     @endif
     <link rel="stylesheet" href="{{ asset('vendor/yurba/main.css') }}?v={{ @filemtime(public_path('vendor/yurba/main.css')) }}">
+    @if(config('yurba.ui.icons', true))
+        <script>(function(){var h=document.documentElement,done=function(){h.classList.remove("icons-loading")};try{h.classList.add("icons-loading");document.fonts.load("24px 'Material Symbols Rounded'").then(done,done);setTimeout(done,5000)}catch(e){done()}})()</script>
+    @endif
     @foreach($yurbaStyles as $href)
         <link rel="stylesheet" href="{{ $href }}">
     @endforeach

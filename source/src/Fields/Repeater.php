@@ -93,7 +93,8 @@ class Repeater extends Field
                     $entry[$col] = trim((string) ($row[$col] ?? ''));
                 }
 
-                if ($entry[$col] != '') {
+                // an unticked checkbox posts its hidden "0", which is not content
+                if ($entry[$col] != '' && ! (is_array($conf) && ! empty($conf['boolean']) && $entry[$col] == '0')) {
                     $empty = false;
                 }
             }

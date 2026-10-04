@@ -44,6 +44,13 @@ class ImportExportController extends Controller
         if (is_bool($value)) {
             return $value ? '1' : '0';
         }
+        // json_encode would wrap these in quotes ("2026-01-02T10:00:00.000000Z")
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+        if ($value instanceof \BackedEnum) {
+            return (string) $value->value;
+        }
         if (is_array($value) || is_object($value)) {
             return (string) json_encode($value, JSON_UNESCAPED_UNICODE);
         }

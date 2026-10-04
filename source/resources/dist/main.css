@@ -1931,3 +1931,8 @@ tr.is-dragging {
 .y-status-icon--muted {
     color: var(--y-muted, #9ca3af);
 }
+
+/* An icon is its name until its font is in, so it stays unseen while the page waits for the font */
+html.icons-loading .material-symbols-rounded {
+    color: transparent !important;
+}

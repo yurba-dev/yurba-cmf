@@ -28,6 +28,14 @@ class Select extends Field
         return $this;
     }
 
+    // an enum-cast attribute is an object: as an options key or a string it throws
+    public function value(Model $model): mixed
+    {
+        $value = parent::value($model);
+
+        return $value instanceof \UnitEnum ? ($value instanceof \BackedEnum ? $value->value : $value->name) : $value;
+    }
+
     public function indexValue(Model $model): string
     {
         $value = $this->value($model);
